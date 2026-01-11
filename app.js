@@ -11,6 +11,11 @@ let weeklyData = {
 
 let currentRole = 'admin';
 
+// Constants
+const LABOR_THRESHOLD_HIGH = 30; // Labor % above this shows red
+const LABOR_THRESHOLD_BONUS = 32; // Labor % below this qualifies for bonus
+const MAX_JOBS_PER_WEEK = 7; // Maximum expected jobs per week for 100% completion
+
 // DOM Elements
 const userRoleSelect = document.getElementById('userRole');
 const daySelect = document.getElementById('daySelect');
@@ -73,7 +78,7 @@ function updateUIBasedOnRole() {
 // Handle Labor Input Change (Color Coding)
 function handleLaborInputChange(e) {
     const value = parseFloat(e.target.value);
-    if (value > 30) {
+    if (value > LABOR_THRESHOLD_HIGH) {
         laborInput.classList.add('high-labor');
     } else {
         laborInput.classList.remove('high-labor');
@@ -99,7 +104,7 @@ function handleAddEntry() {
     laborInput.classList.remove('high-labor');
 
     // Check for confetti trigger (100% job completion)
-    if (jobs > 0 && calculateWeeklyMetrics().totalJobs === calculateMaxPossibleJobs()) {
+    if (jobs > 0 && calculateWeeklyMetrics().totalJobs === MAX_JOBS_PER_WEEK) {
         triggerConfetti();
     }
 
@@ -143,11 +148,6 @@ function calculateWeeklyMetrics() {
     };
 }
 
-// Calculate Max Possible Jobs (simple heuristic)
-function calculateMaxPossibleJobs() {
-    return 7; // Assuming at least 1 job per day = 100%
-}
-
 // Update UI
 function updateUI() {
     updateTable();
@@ -169,7 +169,7 @@ function updateTable() {
         const row = document.createElement('tr');
         
         // Apply color coding to labor cell
-        const laborClass = data.labor > 30 ? 'high-labor' : (data.labor < 32 && data.labor > 0 ? 'good-labor' : '');
+        const laborClass = data.labor > LABOR_THRESHOLD_HIGH ? 'high-labor' : (data.labor < LABOR_THRESHOLD_BONUS && data.labor > 0 ? 'good-labor' : '');
         
         row.innerHTML = `
             <td><strong>${day}</strong></td>
@@ -236,7 +236,7 @@ function updateBonusIndicator() {
     const metrics = calculateWeeklyMetrics();
     const bonusIndicator = document.getElementById('bonusIndicator');
     
-    if (metrics.avgLabor > 0 && metrics.avgLabor < 32) {
+    if (metrics.avgLabor > 0 && metrics.avgLabor < LABOR_THRESHOLD_BONUS) {
         bonusIndicator.classList.remove('hidden');
     } else {
         bonusIndicator.classList.add('hidden');
@@ -319,8 +319,8 @@ function updateLaborChart() {
         svg.appendChild(text);
     }
     
-    // Draw target line at 32%
-    const targetY = padding + (height - 2 * padding) * (1 - 0.32);
+    // Draw target line at LABOR_THRESHOLD_BONUS
+    const targetY = padding + (height - 2 * padding) * (1 - LABOR_THRESHOLD_BONUS / 100);
     const targetLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     targetLine.setAttribute('x1', padding);
     targetLine.setAttribute('y1', targetY);
@@ -352,7 +352,7 @@ function updateLaborChart() {
         circle.setAttribute('cx', x);
         circle.setAttribute('cy', y);
         circle.setAttribute('r', '4');
-        circle.setAttribute('fill', data.labor > 30 ? '#ef4444' : '#2563eb');
+        circle.setAttribute('fill', data.labor > LABOR_THRESHOLD_HIGH ? '#ef4444' : '#2563eb');
         circle.setAttribute('stroke', 'white');
         circle.setAttribute('stroke-width', '2');
         svg.appendChild(circle);
@@ -403,7 +403,7 @@ function handleExport() {
     csv += `\nTotals/Averages,${metrics.totalRevenue.toFixed(2)},${metrics.avgLabor.toFixed(1)},${metrics.totalHours.toFixed(1)},${metrics.totalJobs},${metrics.avgRevenuePerJob.toFixed(2)}\n`;
     csv += `\nMetrics\n`;
     csv += `Labor Efficiency,${metrics.laborEfficiency.toFixed(2)} $/hr\n`;
-    csv += `Bonus Eligible,${metrics.avgLabor < 32 && metrics.avgLabor > 0 ? 'Yes' : 'No'}\n`;
+    csv += `Bonus Eligible,${metrics.avgLabor < LABOR_THRESHOLD_BONUS && metrics.avgLabor > 0 ? 'Yes' : 'No'}\n`;
 
     // Create download link
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -459,8 +459,8 @@ function displaySnapshots() {
 
     snapshotsList.innerHTML = '';
     
-    // Display in reverse order (newest first)
-    snapshots.reverse().forEach(snapshot => {
+    // Display in reverse order (newest first) - use slice to avoid mutating original
+    [...snapshots].reverse().forEach(snapshot => {
         const snapshotItem = document.createElement('div');
         snapshotItem.className = 'snapshot-item';
         snapshotItem.innerHTML = `
