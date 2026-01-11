@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crew Performance Scorecard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>📊 Crew Performance Scorecard</h1>
+            <div class="header-actions">
+                <div class="role-selector">
+                    <label for="userRole">Role:</label>
+                    <select id="userRole">
+                        <option value="admin">Admin</option>
+                        <option value="editor">Editor</option>
+                        <option value="viewer">Viewer</option>
+                    </select>
+                </div>
+                <button id="exportBtn" class="btn btn-export">📥 Export CSV</button>
+                <button id="saveBtn" class="btn btn-save">💾 Save Snapshot</button>
+            </div>
+        </header>
+
+        <!-- Daily Input Section -->
+        <section class="daily-input-section">
+            <h2>Daily Entry</h2>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="daySelect">Day:</label>
+                    <select id="daySelect">
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="revenueInput">Revenue ($):</label>
+                    <input type="number" id="revenueInput" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="laborInput">Labor (%):</label>
+                    <input type="number" id="laborInput" placeholder="0.0" step="0.1" min="0" max="100">
+                </div>
+                <div class="input-group">
+                    <label for="hoursInput">Hours:</label>
+                    <input type="number" id="hoursInput" placeholder="0.0" step="0.1" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="jobsCompletedInput">Jobs Completed:</label>
+                    <input type="number" id="jobsCompletedInput" placeholder="0" min="0">
+                </div>
+            </div>
+            <button id="addEntryBtn" class="btn btn-primary">➕ Add Entry</button>
+        </section>
+
+        <!-- Weekly Data Table -->
+        <section class="weekly-data-section">
+            <h2>Weekly Data</h2>
+            <div class="table-container">
+                <table id="weeklyTable">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Revenue ($)</th>
+                            <th>Labor (%)</th>
+                            <th>Hours</th>
+                            <th>Jobs</th>
+                            <th>$/Job</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="weeklyTableBody">
+                        <!-- Rows will be inserted here -->
+                    </tbody>
+                    <tfoot id="weeklyTableFoot">
+                        <!-- Summary rows will be inserted here -->
+                    </tfoot>
+                </table>
+            </div>
+        </section>
+
+        <!-- Metrics Dashboard -->
+        <section class="metrics-section">
+            <h2>Weekly Metrics</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>Total Revenue</h3>
+                    <p class="metric-value" id="totalRevenue">$0.00</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Avg Labor %</h3>
+                    <p class="metric-value" id="avgLabor">0.0%</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Total Hours</h3>
+                    <p class="metric-value" id="totalHours">0.0</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Total Jobs</h3>
+                    <p class="metric-value" id="totalJobs">0</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Avg Revenue/Job</h3>
+                    <p class="metric-value" id="avgRevenuePerJob">$0.00</p>
+                </div>
+                <div class="metric-card">
+                    <h3>Labor Efficiency</h3>
+                    <p class="metric-value" id="laborEfficiency">$0.00/hr</p>
+                </div>
+            </div>
+            
+            <!-- Bonus Indicator -->
+            <div id="bonusIndicator" class="bonus-indicator hidden">
+                <span class="bonus-icon">🎉</span>
+                <span class="bonus-text">Bonus Eligible! Labor % below 32%</span>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="charts-section">
+            <h2>Trends</h2>
+            <div class="chart-wrapper">
+                <h3>Daily Revenue Trend</h3>
+                <div class="bar-chart" id="revenueChart"></div>
+            </div>
+            <div class="chart-wrapper">
+                <h3>Labor % Trend (Target: < 32%)</h3>
+                <div class="line-chart" id="laborChart"></div>
+            </div>
+        </section>
+
+        <!-- Snapshots Section -->
+        <section class="snapshots-section">
+            <h2>Saved Snapshots</h2>
+            <div id="snapshotsList" class="snapshots-list">
+                <!-- Snapshots will be listed here -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Confetti Container -->
+    <div id="confettiContainer" class="confetti-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
