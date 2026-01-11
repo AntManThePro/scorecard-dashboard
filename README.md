@@ -1,3 +1,4 @@
+![GitHub Pages](https://img.shields.io/github/deployments/AntManThePro/scorecard-dashboard/github-pages?label=Deployed%20to%20GitHub%20Pages&logo=github&style=flat-square)
 # Crew Performance Scorecard Dashboard
 
 An interactive, mobile-first web application for tracking daily and weekly crew performance metrics.
