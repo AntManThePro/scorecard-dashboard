@@ -13,12 +13,17 @@ export const momentum = data =>
 
 // volatility = standard deviation
 export const volatility = data => {
+  if (data.length === 0) return 0;
   const mean = data.reduce((s, d) => s + d.score, 0) / data.length;
   const variance =
     data.reduce((s, d) => s + (d.score - mean) ** 2, 0) / data.length;
   return Math.sqrt(variance);
 };
 
-// trend label
+/**
+ * Generate a trend label based on momentum value
+ * @param {number} m - Momentum value (typically the difference between consecutive scores)
+ * @returns {string} "UP" if m > 0.5, "DOWN" if m < -0.5, otherwise "FLAT"
+ */
 export const trendLabel = m =>
   m > 0.5 ? "UP" : m < -0.5 ? "DOWN" : "FLAT";
