@@ -102,6 +102,8 @@ header h1 {
 .btn-primary {
     background-color: var(--primary-color);
     color: white;
+    text-decoration: none;
+    display: inline-block;
 }
 
 .btn-primary:hover:not(:disabled) {

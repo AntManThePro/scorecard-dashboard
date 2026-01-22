@@ -1,5 +1,8 @@
 // Repository Manager JavaScript
 
+// Constants
+const GITHUB_API_DELAY_MS = 500; // Delay between API calls to avoid rate limiting
+
 let githubToken = '';
 let repositories = [];
 
@@ -15,9 +18,9 @@ const statusMessage = document.getElementById('statusMessage');
 loadReposBtn.addEventListener('click', loadRepositories);
 makeAllPrivateBtn.addEventListener('click', makeAllRepositoriesPrivate);
 
-// Load token from localStorage if available
+// Load token from sessionStorage if available (more secure than localStorage)
 document.addEventListener('DOMContentLoaded', () => {
-    const savedToken = localStorage.getItem('githubToken');
+    const savedToken = sessionStorage.getItem('githubToken');
     if (savedToken) {
         githubTokenInput.value = savedToken;
     }
@@ -42,8 +45,8 @@ async function loadRepositories() {
         return;
     }
 
-    // Save token to localStorage
-    localStorage.setItem('githubToken', githubToken);
+    // Save token to sessionStorage (cleared when browser closes for better security)
+    sessionStorage.setItem('githubToken', githubToken);
 
     loadReposBtn.disabled = true;
     loadReposBtn.textContent = 'Loading...';
@@ -170,8 +173,12 @@ async function makeRepositoryPrivate(repoName, owner) {
 
         showStatus(`✓ Successfully made ${repoName} private`, 'success');
         
-        // Reload repositories to update the list
-        await loadRepositories();
+        // Update local state instead of full reload for better performance
+        const repo = repositories.find(r => r.name === repoName);
+        if (repo) {
+            repo.private = true;
+            displayRepositories();
+        }
 
     } catch (error) {
         showStatus(`Error: ${error.message}`, 'error');
@@ -222,8 +229,8 @@ async function makeAllRepositoriesPrivate() {
                 console.error(`Failed to update ${repo.name}`);
             }
 
-            // Small delay to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Delay to avoid GitHub API rate limiting
+            await new Promise(resolve => setTimeout(resolve, GITHUB_API_DELAY_MS));
 
         } catch (error) {
             failCount++;
