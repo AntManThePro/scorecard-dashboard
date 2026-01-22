@@ -38,6 +38,12 @@ An interactive, mobile-first web application for tracking daily and weekly crew 
 - **Load/Delete Snapshots**: Restore previous weeks' data or remove old snapshots
 - **CSV Export**: Export weekly data with full metrics to CSV file
 
+### GitHub Repository Management
+- **Repository Privacy Control**: Manage the visibility of your GitHub repositories
+- **Bulk Operations**: Make all public repositories private with a single click
+- **Individual Control**: Toggle privacy settings for individual repositories
+- **Secure Authentication**: Uses GitHub Personal Access Tokens for secure API access
+
 ### Mobile-First Design
 - Responsive layout optimized for mobile devices (375px+)
 - Tablet-friendly (640px+)
@@ -80,6 +86,15 @@ An interactive, mobile-first web application for tracking daily and weekly crew 
 1. Use the role selector in the header
 2. Interface adapts based on selected role
 3. Buttons and inputs enable/disable accordingly
+
+### Managing GitHub Repositories
+1. Click "Manage Repositories" button in the header
+2. Enter your GitHub Personal Access Token
+   - Create a token at: https://github.com/settings/tokens/new
+   - Required scope: `repo` (full control of private repositories)
+3. Click "Load My Repositories" to view all your repositories
+4. Use "Make All Public Repositories Private" for bulk operations
+5. Or click "Make Private" on individual repositories
 
 ## Browser Support
 
