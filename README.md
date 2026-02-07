@@ -64,6 +64,18 @@ An interactive, mobile-first web application for tracking daily and weekly crew 
 2. Open `index.html` in a modern web browser
 3. No build process or dependencies required!
 
+## Deployment
+
+Want to deploy this application and make it accessible online? Check out our comprehensive [Deployment Guide](DEPLOYMENT.md) which covers:
+
+- **GitHub Pages** (already configured and active)
+- **Vercel** - Fast deployment with automatic HTTPS
+- **Netlify** - Continuous deployment with a generous free tier
+- **Custom Domain Setup** - Use your own domain name
+- **Troubleshooting** - Common deployment issues and solutions
+
+👉 [Read the full Deployment Guide](DEPLOYMENT.md)
+
 ## Usage
 
 ### Adding Daily Data
