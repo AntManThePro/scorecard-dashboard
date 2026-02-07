@@ -1,0 +1,26 @@
+{
+  "name": "scorecard-dashboard",
+  "version": "1.0.0",
+  "description": "An interactive, mobile-first web application for tracking daily and weekly crew performance metrics",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'No build step required - static HTML application'",
+    "test": "echo 'No tests configured'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AntManThePro/scorecard-dashboard.git"
+  },
+  "keywords": [
+    "dashboard",
+    "scorecard",
+    "performance",
+    "tracking"
+  ],
+  "author": "AntManThePro",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/AntManThePro/scorecard-dashboard/issues"
+  },
+  "homepage": "https://github.com/AntManThePro/scorecard-dashboard#readme"
+}
