@@ -33,9 +33,24 @@ jobs:
           DEFAULT_BRANCH="main"
 
           echo "Finding branches that have been merged into $DEFAULT_BRANCH..."
-          for branch in $(git branch -r --merged origin/$DEFAULT_BRANCH | grep -v "origin/$DEFAULT_BRANCH" | grep -v "HEAD" | sed 's/origin\///'); do
+          git branch -r --merged "origin/$DEFAULT_BRANCH" | sed 's/^[[:space:]]*//' | while IFS= read -r ref; do
+            # Skip HEAD and the default branch (exact match)
+            case "$ref" in
+              "origin/$DEFAULT_BRANCH"|"origin/HEAD"*) continue ;;
+            esac
+
+            branch="${ref#origin/}"
+
+            # Validate branch name contains only safe characters
+            if ! echo "$branch" | grep -qE '^[A-Za-z0-9/_.-]+$'; then
+              echo "Skipping branch with unexpected characters: $branch"
+              continue
+            fi
+
             echo "Deleting merged branch: $branch"
-            gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/$branch" || echo "  Could not delete $branch (may already be deleted)"
+            if ! output=$(gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/$branch" 2>&1); then
+              echo "  Warning: Could not delete '$branch': $output"
+            fi
           done
 
           echo "Branch cleanup complete."
