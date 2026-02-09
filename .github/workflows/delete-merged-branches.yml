@@ -1,0 +1,56 @@
+# Workflow to clean up branches that have been merged into main
+name: Delete merged branches
+
+on:
+  # Run automatically when a pull request is closed (merged)
+  pull_request:
+    types: [closed]
+
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  delete-merged-branches:
+    runs-on: ubuntu-latest
+    # For pull_request trigger, only run if the PR was merged
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete merged branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Fetching all remote branches..."
+          git fetch --prune origin
+
+          DEFAULT_BRANCH="main"
+
+          echo "Finding branches that have been merged into $DEFAULT_BRANCH..."
+          git branch -r --merged "origin/$DEFAULT_BRANCH" | sed 's/^[[:space:]]*//' | while IFS= read -r ref; do
+            # Skip HEAD and the default branch (exact match)
+            case "$ref" in
+              "origin/$DEFAULT_BRANCH"|"origin/HEAD"*) continue ;;
+            esac
+
+            branch="${ref#origin/}"
+
+            # Validate branch name contains only safe characters
+            if ! echo "$branch" | grep -qE '^[A-Za-z0-9/_.-]+$'; then
+              echo "Skipping branch with unexpected characters: $branch"
+              continue
+            fi
+
+            echo "Deleting merged branch: $branch"
+            if ! output=$(gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/$branch" 2>&1); then
+              echo "  Warning: Could not delete '$branch': $output"
+            fi
+          done
+
+          echo "Branch cleanup complete."
