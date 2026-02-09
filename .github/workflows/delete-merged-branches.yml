@@ -1,0 +1,41 @@
+# Workflow to clean up branches that have been merged into main
+name: Delete merged branches
+
+on:
+  # Run automatically when a pull request is closed (merged)
+  pull_request:
+    types: [closed]
+
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  delete-merged-branches:
+    runs-on: ubuntu-latest
+    # For pull_request trigger, only run if the PR was merged
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete merged branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Fetching all remote branches..."
+          git fetch --prune origin
+
+          DEFAULT_BRANCH="main"
+
+          echo "Finding branches that have been merged into $DEFAULT_BRANCH..."
+          for branch in $(git branch -r --merged origin/$DEFAULT_BRANCH | grep -v "origin/$DEFAULT_BRANCH" | grep -v "HEAD" | sed 's/origin\///'); do
+            echo "Deleting merged branch: $branch"
+            gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/$branch" || echo "  Could not delete $branch (may already be deleted)"
+          done
+
+          echo "Branch cleanup complete."
