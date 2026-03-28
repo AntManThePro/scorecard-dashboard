@@ -15,6 +15,7 @@ let currentRole = 'admin';
 const LABOR_THRESHOLD_HIGH = 30; // Labor % above this shows red
 const LABOR_THRESHOLD_BONUS = 32; // Labor % below this qualifies for bonus
 const MAX_JOBS_PER_WEEK = 7; // Maximum expected jobs per week for 100% completion
+const TREND_THRESHOLD = 0.5; // Minimum momentum change to register as trending up/down
 
 // DOM Elements
 const userRoleSelect = document.getElementById('userRole');
@@ -250,19 +251,20 @@ function calculateTrends() {
     };
 }
 
-// Momentum: difference between last two nonzero values
+// Momentum: calculates the difference between the last two nonzero values
+// to determine whether the metric is trending up, down, or flat.
 function momentum(values) {
     if (values.length < 2) return 0;
     return values[values.length - 1] - values[values.length - 2];
 }
 
-// Generate trend badge HTML
+// Generate trend badge HTML based on momentum value
 function trendBadge(value, invert) {
     if (value === 0) return '';
     // For labor, lower is better so invert the direction
     const direction = invert ? -value : value;
-    if (direction > 0.5) return ' <span class="trend-indicator trend-up">▲</span>';
-    if (direction < -0.5) return ' <span class="trend-indicator trend-down">▼</span>';
+    if (direction > TREND_THRESHOLD) return ' <span class="trend-indicator trend-up">▲</span>';
+    if (direction < -TREND_THRESHOLD) return ' <span class="trend-indicator trend-down">▼</span>';
     return ' <span class="trend-indicator trend-flat">—</span>';
 }
 
