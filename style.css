@@ -151,6 +151,15 @@ header h1 {
     background-color: #1d4ed8;
 }
 
+.btn-nexus {
+    background: linear-gradient(135deg, #00ff87, #60efff);
+    color: #0a0a0f;
+}
+
+.btn-nexus:hover:not(:disabled) {
+    background: linear-gradient(135deg, #60efff, #00ff87);
+}
+
 /* Sections */
 section {
     background-color: var(--card-bg);

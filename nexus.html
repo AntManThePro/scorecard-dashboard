@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Algorithm Theater — DoubleA Portfolio</title>
+    <style>
+        /* ═══════════════════════════════════════════════════════
+           NEXUS AESTHETIC — #00ff87 #60efff #ff0080 #ffcc00
+           ═══════════════════════════════════════════════════════ */
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@400;700;900&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --neon-green: #00ff87;
+            --cyan: #60efff;
+            --hot-pink: #ff0080;
+            --yellow: #ffcc00;
+            --bg-deep: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-surface: #1a1a2e;
+            --text: #e0e0e0;
+            --text-dim: #666680;
+            --glow-green: 0 0 20px rgba(0,255,135,0.3), 0 0 40px rgba(0,255,135,0.1);
+            --glow-cyan: 0 0 20px rgba(96,239,255,0.3), 0 0 40px rgba(96,239,255,0.1);
+            --glow-pink: 0 0 20px rgba(255,0,128,0.3), 0 0 40px rgba(255,0,128,0.1);
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-deep);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                linear-gradient(rgba(0,255,135,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,135,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── HEADER ── */
+        .nexus-header {
+            text-align: center;
+            padding: 2rem 1rem;
+            position: relative;
+        }
+
+        .nexus-header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 3rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--neon-green), var(--cyan), var(--hot-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            letter-spacing: 0.1em;
+        }
+
+        .nexus-header .subtitle {
+            font-size: clamp(0.7rem, 2vw, 0.9rem);
+            color: var(--text-dim);
+            margin-top: 0.5rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        .nexus-header .author-tag {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.3rem 1rem;
+            border: 1px solid var(--neon-green);
+            border-radius: 2px;
+            color: var(--neon-green);
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            color: var(--cyan);
+            text-decoration: none;
+            font-size: 0.8rem;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .back-link:hover { opacity: 1; }
+
+        /* ── MODE SELECTOR ── */
+        .mode-selector {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .mode-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem;
+            padding: 0.6rem 1.2rem;
+            border: 1px solid var(--text-dim);
+            background: transparent;
+            color: var(--text-dim);
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.3s;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .mode-btn:hover {
+            border-color: var(--cyan);
+            color: var(--cyan);
+        }
+
+        .mode-btn.active {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            box-shadow: var(--glow-green);
+            background: rgba(0,255,135,0.05);
+        }
+
+        /* ── CANVAS STAGE ── */
+        .stage {
+            background: var(--bg-card);
+            border: 1px solid rgba(0,255,135,0.15);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .stage canvas {
+            display: block;
+            width: 100%;
+            height: 400px;
+            cursor: crosshair;
+        }
+
+        @media (min-width: 768px) {
+            .stage canvas { height: 500px; }
+        }
+
+        /* ── CONTROLS ── */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .ctrl-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--hot-pink);
+            background: transparent;
+            color: var(--hot-pink);
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+        .ctrl-btn:hover {
+            background: rgba(255,0,128,0.1);
+            box-shadow: var(--glow-pink);
+        }
+        .ctrl-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .speed-slider {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-dim);
+            font-size: 0.75rem;
+        }
+
+        .speed-slider input[type="range"] {
+            -webkit-appearance: none;
+            width: 100px;
+            height: 4px;
+            background: var(--bg-surface);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .speed-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--yellow);
+            cursor: pointer;
+        }
+
+        /* ── STATS BAR ── */
+        .stats-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1.5rem;
+            padding: 1rem;
+            background: var(--bg-surface);
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(96,239,255,0.1);
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--cyan);
+        }
+
+        /* ── INFO PANEL ── */
+        .info-panel {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,204,0,0.15);
+            border-radius: 4px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-panel h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            color: var(--yellow);
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.1em;
+        }
+
+        .info-panel p {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        .info-panel .complexity {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            font-size: 0.7rem;
+            border-radius: 2px;
+            margin-top: 0.5rem;
+        }
+
+        /* ── FOOTER ── */
+        .nexus-footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            border-top: 1px solid rgba(0,255,135,0.1);
+            margin-top: 2rem;
+        }
+
+        .nexus-footer p {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            letter-spacing: 0.1em;
+        }
+
+        .nexus-footer a {
+            color: var(--neon-green);
+            text-decoration: none;
+        }
+
+        /* ── PATHFINDING GRID OVERLAY ── */
+        .grid-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .grid-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid var(--cyan);
+            background: transparent;
+            color: var(--cyan);
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+
+        .grid-btn:hover {
+            background: rgba(96,239,255,0.1);
+        }
+
+        .grid-btn.active {
+            background: rgba(96,239,255,0.15);
+            box-shadow: var(--glow-cyan);
+        }
+
+        /* ── PARTICLE PHYSICS ── */
+        .physics-info {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 600px) {
+            .container { padding: 0.5rem; }
+            .nexus-header { padding: 1rem 0.5rem; }
+            .nexus-header h1 { letter-spacing: 0.05em; }
+            .stage canvas { height: 300px; }
+            .stats-bar { gap: 0.75rem; padding: 0.75rem; }
+            .stat-value { font-size: 1rem; }
+        }
+
+        /* Pulse animation */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .pulse { animation: pulse-glow 2s ease-in-out infinite; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <nav class="nexus-header">
+        <a href="index.html" class="back-link">← DASHBOARD</a>
+        <h1>NEXUS ALGORITHM THEATER</h1>
+        <p class="subtitle">Interactive Algorithm Visualization Engine</p>
+        <span class="author-tag">DoubleA @ AntManThePro</span>
+    </nav>
+
+    <!-- Mode Selector -->
+    <div class="mode-selector" id="modeSelector">
+        <button class="mode-btn active" data-mode="sort">Sorting</button>
+        <button class="mode-btn" data-mode="pathfind">Pathfinding</button>
+        <button class="mode-btn" data-mode="physics">Particle Physics</button>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat">
+            <div class="stat-label">Operations</div>
+            <div class="stat-value" id="statOps">0</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Comparisons</div>
+            <div class="stat-value" id="statComps">0</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Time (ms)</div>
+            <div class="stat-value" id="statTime">0</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Elements</div>
+            <div class="stat-value" id="statElements">0</div>
+        </div>
+    </div>
+
+    <!-- Canvas Stage -->
+    <div class="stage">
+        <canvas id="mainCanvas"></canvas>
+    </div>
+
+    <!-- Controls: Sorting -->
+    <div id="sortControls" class="controls">
+        <button class="ctrl-btn" data-algo="bubble">Bubble Sort</button>
+        <button class="ctrl-btn" data-algo="quick">Quick Sort</button>
+        <button class="ctrl-btn" data-algo="merge">Merge Sort</button>
+        <button class="ctrl-btn" data-algo="heap">Heap Sort</button>
+        <button class="ctrl-btn" data-algo="insertion">Insertion Sort</button>
+        <button class="ctrl-btn" id="shuffleBtn">⟳ Shuffle</button>
+        <div class="speed-slider">
+            <span>Speed</span>
+            <input type="range" id="speedSlider" min="1" max="100" value="50">
+        </div>
+    </div>
+
+    <!-- Controls: Pathfinding -->
+    <div id="pathControls" class="controls" style="display:none;">
+        <div class="grid-controls">
+            <button class="grid-btn" data-tool="wall">Draw Walls</button>
+            <button class="grid-btn" data-tool="start">Set Start</button>
+            <button class="grid-btn" data-tool="end">Set End</button>
+            <button class="grid-btn" data-tool="clear">Clear Grid</button>
+        </div>
+        <button class="ctrl-btn" data-path="astar">A* Search</button>
+        <button class="ctrl-btn" data-path="dijkstra">Dijkstra</button>
+        <button class="ctrl-btn" data-path="bfs">BFS</button>
+        <button class="ctrl-btn" data-path="dfs">DFS</button>
+        <div class="speed-slider">
+            <span>Speed</span>
+            <input type="range" id="pathSpeedSlider" min="1" max="100" value="50">
+        </div>
+    </div>
+
+    <!-- Controls: Physics -->
+    <div id="physicsControls" class="controls" style="display:none;">
+        <button class="ctrl-btn" id="addParticlesBtn">+ Add Particles</button>
+        <button class="ctrl-btn" id="gravityToggle">Toggle Gravity</button>
+        <button class="ctrl-btn" id="clearParticles">Clear All</button>
+        <p class="physics-info">Click or tap on the canvas to spawn particles with force</p>
+    </div>
+
+    <!-- Info Panel -->
+    <div class="info-panel" id="infoPanel">
+        <h3>// SORTING ALGORITHMS</h3>
+        <p id="infoText">Select an algorithm to visualize it in real-time. Watch how different strategies compare elements and swap positions. Each bar represents a value — height encodes magnitude, color encodes state.</p>
+        <span class="complexity" id="infoComplexity">O(n²) avg</span>
+    </div>
+
+    <footer class="nexus-footer">
+        <p>NEXUS ALGORITHM THEATER · Built by <a href="https://godmode2025.net" target="_blank" rel="noopener">DoubleA @ AntManThePro</a></p>
+        <p style="margin-top:0.5rem; font-size:0.6rem; color: #444;">Canvas API · SVG · Algorithmic Visualization · Zero Dependencies</p>
+    </footer>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   NEXUS ALGORITHM THEATER — ENGINE
+   Pure Canvas, zero dependencies, all algorithms from scratch
+   ═══════════════════════════════════════════════════════ */
+(function() {
+    'use strict';
+
+    // ── NEXUS COLOR PALETTE ──
+    const COLORS = {
+        green:  '#00ff87',
+        cyan:   '#60efff',
+        pink:   '#ff0080',
+        yellow: '#ffcc00',
+        bg:     '#0a0a0f',
+        card:   '#12121a',
+        dim:    '#333345',
+        text:   '#e0e0e0'
+    };
+
+    // ── CANVAS SETUP ──
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, dpr;
+
+    function resizeCanvas() {
+        dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        W = rect.width;
+        H = rect.height;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        ctx.scale(dpr, dpr);
+    }
+
+    window.addEventListener('resize', () => {
+        resizeCanvas();
+        if (currentMode === 'sort') initSort();
+        if (currentMode === 'pathfind') initPathfind();
+    });
+
+    // ── STATE ──
+    let currentMode = 'sort';
+    let isRunning = false;
+    let animationId = null;
+    let stats = { ops: 0, comps: 0, time: 0, elements: 0 };
+
+    // ── STAT DISPLAY ──
+    const statOps = document.getElementById('statOps');
+    const statComps = document.getElementById('statComps');
+    const statTime = document.getElementById('statTime');
+    const statElements = document.getElementById('statElements');
+
+    function updateStats() {
+        statOps.textContent = stats.ops.toLocaleString();
+        statComps.textContent = stats.comps.toLocaleString();
+        statTime.textContent = stats.time;
+        statElements.textContent = stats.elements;
+    }
+
+    function resetStats() {
+        stats = { ops: 0, comps: 0, time: 0, elements: 0 };
+        updateStats();
+    }
+
+    // ── MODE SWITCHING ──
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    const sortControls = document.getElementById('sortControls');
+    const pathControls = document.getElementById('pathControls');
+    const physicsControls = document.getElementById('physicsControls');
+    const infoPanel = document.getElementById('infoPanel');
+    const infoText = document.getElementById('infoText');
+    const infoComplexity = document.getElementById('infoComplexity');
+
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (isRunning) return;
+            modeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentMode = btn.dataset.mode;
+            switchMode(currentMode);
+        });
+    });
+
+    function switchMode(mode) {
+        cancelAnimation();
+        resetStats();
+        sortControls.style.display = mode === 'sort' ? 'flex' : 'none';
+        pathControls.style.display = mode === 'pathfind' ? 'flex' : 'none';
+        physicsControls.style.display = mode === 'physics' ? 'flex' : 'none';
+
+        if (mode === 'sort') {
+            initSort();
+            setInfo('// SORTING ALGORITHMS', 'Select an algorithm to visualize it in real-time. Watch how different strategies compare elements and swap positions. Each bar represents a value — height encodes magnitude, color encodes state.', 'O(n²) avg');
+        } else if (mode === 'pathfind') {
+            initPathfind();
+            setInfo('// PATHFINDING ALGORITHMS', 'Click to draw walls, set start/end points, then run an algorithm. Watch the frontier expand in real-time. Green = explored, pink = path found, cyan = frontier.', 'O(V + E)');
+        } else if (mode === 'physics') {
+            initPhysics();
+            setInfo('// PARTICLE PHYSICS', 'Click anywhere on the canvas to spawn particles. They interact with gravity and bounce off walls. Each collision is calculated using real physics — momentum, elasticity, and force vectors.', 'O(n²) collision');
+        }
+    }
+
+    function setInfo(title, text, complexity) {
+        infoPanel.querySelector('h3').textContent = title;
+        infoText.textContent = text;
+        infoComplexity.textContent = complexity;
+    }
+
+    function cancelAnimation() {
+        isRunning = false;
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+    }
+
+    // ══════════════════════════════════════════════════
+    // SORTING VISUALIZATION
+    // ══════════════════════════════════════════════════
+    let sortArray = [];
+    let sortHighlight = { comparing: [], swapping: [], sorted: [] };
+    const SORT_COUNT = 80;
+
+    function initSort() {
+        const count = Math.min(SORT_COUNT, Math.floor(W / 6));
+        sortArray = Array.from({ length: count }, (_, i) => i + 1);
+        shuffleArray(sortArray);
+        sortHighlight = { comparing: [], swapping: [], sorted: [] };
+        stats.elements = count;
+        updateStats();
+        drawSort();
+    }
+
+    function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+    }
+
+    function drawSort() {
+        ctx.fillStyle = COLORS.card;
+        ctx.fillRect(0, 0, W, H);
+
+        const n = sortArray.length;
+        const barW = W / n;
+        const maxVal = Math.max(...sortArray);
+
+        for (let i = 0; i < n; i++) {
+            const barH = (sortArray[i] / maxVal) * (H - 20);
+            const x = i * barW;
+            const y = H - barH;
+
+            if (sortHighlight.sorted.includes(i)) {
+                ctx.fillStyle = COLORS.green;
+            } else if (sortHighlight.swapping.includes(i)) {
+                ctx.fillStyle = COLORS.pink;
+            } else if (sortHighlight.comparing.includes(i)) {
+                ctx.fillStyle = COLORS.yellow;
+            } else {
+                ctx.fillStyle = COLORS.cyan;
+            }
+
+            ctx.fillRect(x + 1, y, barW - 2, barH);
+        }
+    }
+
+    // Sorting algorithms as async generators
+    function getSpeed() {
+        const v = parseInt(document.getElementById('speedSlider').value);
+        return Math.max(1, 101 - v);
+    }
+
+    function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+    }
+
+    async function runSort(generator) {
+        if (isRunning) return;
+        isRunning = true;
+        resetStats();
+        stats.elements = sortArray.length;
+        sortHighlight.sorted = [];
+        const startTime = performance.now();
+
+        for (const step of generator) {
+            if (!isRunning) break;
+            sortHighlight.comparing = step.comparing || [];
+            sortHighlight.swapping = step.swapping || [];
+            if (step.sorted) sortHighlight.sorted = step.sorted;
+            stats.ops++;
+            if (step.comp) stats.comps++;
+            stats.time = Math.round(performance.now() - startTime);
+            updateStats();
+            drawSort();
+            await sleep(getSpeed());
+        }
+
+        // Mark all sorted
+        sortHighlight.comparing = [];
+        sortHighlight.swapping = [];
+        sortHighlight.sorted = Array.from({ length: sortArray.length }, (_, i) => i);
+        stats.time = Math.round(performance.now() - startTime);
+        updateStats();
+        drawSort();
+        isRunning = false;
+    }
+
+    // Bubble Sort
+    function* bubbleSort(arr) {
+        const n = arr.length;
+        for (let i = 0; i < n - 1; i++) {
+            for (let j = 0; j < n - i - 1; j++) {
+                yield { comparing: [j, j + 1], comp: true };
+                if (arr[j] > arr[j + 1]) {
+                    [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+                    yield { swapping: [j, j + 1] };
+                }
+            }
+            yield { sorted: Array.from({ length: i + 1 }, (_, k) => n - 1 - k) };
+        }
+    }
+
+    // Quick Sort
+    function* quickSort(arr, lo = 0, hi = arr.length - 1) {
+        if (lo < hi) {
+            let pivot = arr[hi];
+            let i = lo;
+            for (let j = lo; j < hi; j++) {
+                yield { comparing: [j, hi], comp: true };
+                if (arr[j] < pivot) {
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                    yield { swapping: [i, j] };
+                    i++;
+                }
+            }
+            [arr[i], arr[hi]] = [arr[hi], arr[i]];
+            yield { swapping: [i, hi] };
+            yield* quickSort(arr, lo, i - 1);
+            yield* quickSort(arr, i + 1, hi);
+        }
+    }
+
+    // Merge Sort
+    function* mergeSort(arr, lo = 0, hi = arr.length - 1) {
+        if (lo < hi) {
+            const mid = Math.floor((lo + hi) / 2);
+            yield* mergeSort(arr, lo, mid);
+            yield* mergeSort(arr, mid + 1, hi);
+            yield* merge(arr, lo, mid, hi);
+        }
+    }
+
+    function* merge(arr, lo, mid, hi) {
+        const left = arr.slice(lo, mid + 1);
+        const right = arr.slice(mid + 1, hi + 1);
+        let i = 0, j = 0, k = lo;
+        while (i < left.length && j < right.length) {
+            yield { comparing: [lo + i, mid + 1 + j], comp: true };
+            if (left[i] <= right[j]) {
+                arr[k] = left[i];
+                i++;
+            } else {
+                arr[k] = right[j];
+                j++;
+            }
+            yield { swapping: [k] };
+            k++;
+        }
+        while (i < left.length) { arr[k] = left[i]; yield { swapping: [k] }; i++; k++; }
+        while (j < right.length) { arr[k] = right[j]; yield { swapping: [k] }; j++; k++; }
+    }
+
+    // Heap Sort
+    function* heapSort(arr) {
+        const n = arr.length;
+        for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
+            yield* heapify(arr, n, i);
+        }
+        for (let i = n - 1; i > 0; i--) {
+            [arr[0], arr[i]] = [arr[i], arr[0]];
+            yield { swapping: [0, i] };
+            yield* heapify(arr, i, 0);
+        }
+    }
+
+    function* heapify(arr, n, i) {
+        let largest = i;
+        const l = 2 * i + 1;
+        const r = 2 * i + 2;
+        if (l < n) {
+            yield { comparing: [l, largest], comp: true };
+            if (arr[l] > arr[largest]) largest = l;
+        }
+        if (r < n) {
+            yield { comparing: [r, largest], comp: true };
+            if (arr[r] > arr[largest]) largest = r;
+        }
+        if (largest !== i) {
+            [arr[i], arr[largest]] = [arr[largest], arr[i]];
+            yield { swapping: [i, largest] };
+            yield* heapify(arr, n, largest);
+        }
+    }
+
+    // Insertion Sort
+    function* insertionSort(arr) {
+        for (let i = 1; i < arr.length; i++) {
+            let key = arr[i];
+            let j = i - 1;
+            while (j >= 0 && arr[j] > key) {
+                yield { comparing: [j, j + 1], comp: true };
+                arr[j + 1] = arr[j];
+                yield { swapping: [j, j + 1] };
+                j--;
+            }
+            arr[j + 1] = key;
+        }
+    }
+
+    // Sort button handlers
+    document.querySelectorAll('[data-algo]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (isRunning) return;
+            const algo = btn.dataset.algo;
+            const infoMap = {
+                bubble:    { text: 'Bubble Sort repeatedly steps through the list, comparing adjacent elements and swapping them if they\'re in the wrong order. Simple but O(n²).', complexity: 'O(n²) worst/avg' },
+                quick:     { text: 'Quick Sort picks a pivot and partitions the array around it. Recursively sorts sub-arrays. Extremely fast in practice.', complexity: 'O(n log n) avg' },
+                merge:     { text: 'Merge Sort divides the array in half, recursively sorts each half, then merges them back. Stable and guaranteed O(n log n).', complexity: 'O(n log n) guaranteed' },
+                heap:      { text: 'Heap Sort builds a max-heap then repeatedly extracts the maximum element. In-place and O(n log n) guaranteed.', complexity: 'O(n log n) guaranteed' },
+                insertion: { text: 'Insertion Sort builds the sorted array one item at a time. Efficient for small or nearly-sorted datasets.', complexity: 'O(n²) worst, O(n) best' }
+            };
+            setInfo('// ' + algo.toUpperCase() + ' SORT', infoMap[algo].text, infoMap[algo].complexity);
+
+            const gen = { bubble: bubbleSort, quick: quickSort, merge: mergeSort, heap: heapSort, insertion: insertionSort }[algo];
+            runSort(gen(sortArray));
+        });
+    });
+
+    document.getElementById('shuffleBtn').addEventListener('click', () => {
+        if (isRunning) return;
+        initSort();
+    });
+
+    // ══════════════════════════════════════════════════
+    // PATHFINDING VISUALIZATION
+    // ══════════════════════════════════════════════════
+    const GRID_SIZE = 20; // cell size in pixels
+    let grid = [];
+    let gridCols, gridRows;
+    let startCell = null, endCell = null;
+    let pathTool = 'wall';
+    let isDrawing = false;
+
+    const CELL_EMPTY = 0, CELL_WALL = 1, CELL_START = 2, CELL_END = 3;
+    const CELL_VISITED = 4, CELL_FRONTIER = 5, CELL_PATH = 6;
+
+    function initPathfind() {
+        gridCols = Math.floor(W / GRID_SIZE);
+        gridRows = Math.floor(H / GRID_SIZE);
+        grid = Array.from({ length: gridRows }, () => Array(gridCols).fill(CELL_EMPTY));
+        startCell = { r: Math.floor(gridRows / 2), c: 2 };
+        endCell = { r: Math.floor(gridRows / 2), c: gridCols - 3 };
+        grid[startCell.r][startCell.c] = CELL_START;
+        grid[endCell.r][endCell.c] = CELL_END;
+        stats.elements = gridCols * gridRows;
+        updateStats();
+        drawGrid();
+    }
+
+    function drawGrid() {
+        ctx.fillStyle = COLORS.card;
+        ctx.fillRect(0, 0, W, H);
+
+        for (let r = 0; r < gridRows; r++) {
+            for (let c = 0; c < gridCols; c++) {
+                const x = c * GRID_SIZE;
+                const y = r * GRID_SIZE;
+                const cell = grid[r][c];
+
+                switch (cell) {
+                    case CELL_WALL:    ctx.fillStyle = '#2a2a3e'; break;
+                    case CELL_START:   ctx.fillStyle = COLORS.green; break;
+                    case CELL_END:     ctx.fillStyle = COLORS.pink; break;
+                    case CELL_VISITED: ctx.fillStyle = 'rgba(0,255,135,0.15)'; break;
+                    case CELL_FRONTIER:ctx.fillStyle = 'rgba(96,239,255,0.4)'; break;
+                    case CELL_PATH:    ctx.fillStyle = COLORS.yellow; break;
+                    default:           ctx.fillStyle = COLORS.bg; break;
+                }
+
+                ctx.fillRect(x + 1, y + 1, GRID_SIZE - 2, GRID_SIZE - 2);
+            }
+        }
+    }
+
+    // Grid interaction
+    function getGridCell(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const c = Math.floor(x / GRID_SIZE);
+        const r = Math.floor(y / GRID_SIZE);
+        if (r >= 0 && r < gridRows && c >= 0 && c < gridCols) return { r, c };
+        return null;
+    }
+
+    function handleGridInput(e) {
+        if (currentMode !== 'pathfind' || isRunning) return;
+        const cell = getGridCell(e);
+        if (!cell) return;
+
+        if (pathTool === 'wall') {
+            if (grid[cell.r][cell.c] !== CELL_START && grid[cell.r][cell.c] !== CELL_END) {
+                grid[cell.r][cell.c] = grid[cell.r][cell.c] === CELL_WALL ? CELL_EMPTY : CELL_WALL;
+            }
+        } else if (pathTool === 'start') {
+            if (startCell) grid[startCell.r][startCell.c] = CELL_EMPTY;
+            startCell = cell;
+            grid[cell.r][cell.c] = CELL_START;
+        } else if (pathTool === 'end') {
+            if (endCell) grid[endCell.r][endCell.c] = CELL_EMPTY;
+            endCell = cell;
+            grid[cell.r][cell.c] = CELL_END;
+        }
+        drawGrid();
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        handleGridInput(e);
+        if (currentMode === 'physics') spawnParticlesAt(e);
+    });
+    canvas.addEventListener('mousemove', (e) => {
+        if (isDrawing && pathTool === 'wall') handleGridInput(e);
+    });
+    canvas.addEventListener('mouseup', () => { isDrawing = false; });
+
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isDrawing = true;
+        handleGridInput(e);
+        if (currentMode === 'physics') spawnParticlesAt(e);
+    }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (isDrawing && pathTool === 'wall') handleGridInput(e);
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => { isDrawing = false; });
+
+    // Grid tool buttons
+    document.querySelectorAll('[data-tool]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.tool === 'clear') {
+                if (!isRunning) initPathfind();
+                return;
+            }
+            document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            pathTool = btn.dataset.tool;
+        });
+    });
+
+    // Pathfinding algorithms
+    function getPathSpeed() {
+        const v = parseInt(document.getElementById('pathSpeedSlider').value);
+        return Math.max(1, 101 - v);
+    }
+
+    function clearPathVisualization() {
+        for (let r = 0; r < gridRows; r++) {
+            for (let c = 0; c < gridCols; c++) {
+                if (grid[r][c] === CELL_VISITED || grid[r][c] === CELL_FRONTIER || grid[r][c] === CELL_PATH) {
+                    grid[r][c] = CELL_EMPTY;
+                }
+            }
+        }
+    }
+
+    function neighbors(r, c) {
+        const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
+        const result = [];
+        for (const [dr, dc] of dirs) {
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols && grid[nr][nc] !== CELL_WALL) {
+                result.push({ r: nr, c: nc });
+            }
+        }
+        return result;
+    }
+
+    function heuristic(a, b) {
+        return Math.abs(a.r - b.r) + Math.abs(a.c - b.c);
+    }
+
+    async function runPathfind(algo) {
+        if (isRunning || !startCell || !endCell) return;
+        isRunning = true;
+        resetStats();
+        clearPathVisualization();
+        drawGrid();
+        stats.elements = gridCols * gridRows;
+        const startTime = performance.now();
+
+        const cameFrom = {};
+        const key = (r, c) => `${r},${c}`;
+        let found = false;
+
+        if (algo === 'astar' || algo === 'dijkstra') {
+            // Priority queue (min-heap via sorted array for simplicity)
+            const gScore = {};
+            const fScore = {};
+            gScore[key(startCell.r, startCell.c)] = 0;
+            fScore[key(startCell.r, startCell.c)] = algo === 'astar' ? heuristic(startCell, endCell) : 0;
+
+            const openSet = [{ ...startCell }];
+            const closedSet = new Set();
+
+            while (openSet.length > 0) {
+                if (!isRunning) break;
+                openSet.sort((a, b) => (fScore[key(a.r, a.c)] || Infinity) - (fScore[key(b.r, b.c)] || Infinity));
+                const current = openSet.shift();
+                const ck = key(current.r, current.c);
+
+                if (current.r === endCell.r && current.c === endCell.c) { found = true; break; }
+                if (closedSet.has(ck)) continue;
+                closedSet.add(ck);
+
+                if (grid[current.r][current.c] !== CELL_START) {
+                    grid[current.r][current.c] = CELL_VISITED;
+                }
+                stats.ops++;
+                stats.time = Math.round(performance.now() - startTime);
+                updateStats();
+                drawGrid();
+                await sleep(getPathSpeed());
+
+                for (const nb of neighbors(current.r, current.c)) {
+                    const nk = key(nb.r, nb.c);
+                    if (closedSet.has(nk)) continue;
+                    const tentG = (gScore[ck] || 0) + 1;
+                    stats.comps++;
+                    if (tentG < (gScore[nk] || Infinity)) {
+                        cameFrom[nk] = ck;
+                        gScore[nk] = tentG;
+                        fScore[nk] = tentG + (algo === 'astar' ? heuristic(nb, endCell) : 0);
+                        if (!openSet.find(o => o.r === nb.r && o.c === nb.c)) {
+                            openSet.push(nb);
+                            if (grid[nb.r][nb.c] !== CELL_END) grid[nb.r][nb.c] = CELL_FRONTIER;
+                        }
+                    }
+                }
+            }
+        } else if (algo === 'bfs') {
+            const queue = [{ ...startCell }];
+            const visited = new Set([key(startCell.r, startCell.c)]);
+
+            while (queue.length > 0) {
+                if (!isRunning) break;
+                const current = queue.shift();
+                const ck = key(current.r, current.c);
+
+                if (current.r === endCell.r && current.c === endCell.c) { found = true; break; }
+                if (grid[current.r][current.c] !== CELL_START) grid[current.r][current.c] = CELL_VISITED;
+                stats.ops++;
+                stats.time = Math.round(performance.now() - startTime);
+                updateStats();
+                drawGrid();
+                await sleep(getPathSpeed());
+
+                for (const nb of neighbors(current.r, current.c)) {
+                    const nk = key(nb.r, nb.c);
+                    stats.comps++;
+                    if (!visited.has(nk)) {
+                        visited.add(nk);
+                        cameFrom[nk] = ck;
+                        queue.push(nb);
+                        if (grid[nb.r][nb.c] !== CELL_END) grid[nb.r][nb.c] = CELL_FRONTIER;
+                    }
+                }
+            }
+        } else if (algo === 'dfs') {
+            const stack = [{ ...startCell }];
+            const visited = new Set([key(startCell.r, startCell.c)]);
+
+            while (stack.length > 0) {
+                if (!isRunning) break;
+                const current = stack.pop();
+                const ck = key(current.r, current.c);
+
+                if (current.r === endCell.r && current.c === endCell.c) { found = true; break; }
+                if (grid[current.r][current.c] !== CELL_START) grid[current.r][current.c] = CELL_VISITED;
+                stats.ops++;
+                stats.time = Math.round(performance.now() - startTime);
+                updateStats();
+                drawGrid();
+                await sleep(getPathSpeed());
+
+                for (const nb of neighbors(current.r, current.c)) {
+                    const nk = key(nb.r, nb.c);
+                    stats.comps++;
+                    if (!visited.has(nk)) {
+                        visited.add(nk);
+                        cameFrom[nk] = ck;
+                        stack.push(nb);
+                        if (grid[nb.r][nb.c] !== CELL_END) grid[nb.r][nb.c] = CELL_FRONTIER;
+                    }
+                }
+            }
+        }
+
+        // Reconstruct path
+        if (found) {
+            let ck = key(endCell.r, endCell.c);
+            while (cameFrom[ck]) {
+                const [r, c] = cameFrom[ck].split(',').map(Number);
+                if (grid[r][c] !== CELL_START) grid[r][c] = CELL_PATH;
+                ck = cameFrom[ck];
+            }
+        }
+
+        stats.time = Math.round(performance.now() - startTime);
+        updateStats();
+        drawGrid();
+        isRunning = false;
+    }
+
+    // Path button handlers
+    document.querySelectorAll('[data-path]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const algo = btn.dataset.path;
+            const infoMap = {
+                astar:    { text: 'A* Search uses a heuristic (Manhattan distance) to guide exploration toward the goal. Optimal and efficient for grid-based pathfinding.', complexity: 'O(E) with good heuristic' },
+                dijkstra: { text: 'Dijkstra\'s algorithm explores all directions equally, guaranteeing the shortest path. No heuristic — pure exhaustive shortest-path search.', complexity: 'O(V²) or O(E + V log V)' },
+                bfs:      { text: 'Breadth-First Search explores level by level from the start. Guarantees shortest path in unweighted graphs. Simple and powerful.', complexity: 'O(V + E)' },
+                dfs:      { text: 'Depth-First Search dives deep before backtracking. Does NOT guarantee shortest path, but explores aggressively and uses less memory.', complexity: 'O(V + E)' }
+            };
+            setInfo('// ' + algo.toUpperCase(), infoMap[algo].text, infoMap[algo].complexity);
+            runPathfind(algo);
+        });
+    });
+
+    // ══════════════════════════════════════════════════
+    // PARTICLE PHYSICS SIMULATION
+    // ══════════════════════════════════════════════════
+    let particles = [];
+    let gravityOn = true;
+    const GRAVITY = 0.15;
+    const FRICTION = 0.999;
+    const BOUNCE = 0.8;
+
+    class Particle {
+        constructor(x, y, vx, vy) {
+            this.x = x;
+            this.y = y;
+            this.vx = vx || (Math.random() - 0.5) * 8;
+            this.vy = vy || (Math.random() - 0.5) * 8;
+            this.radius = 3 + Math.random() * 5;
+            this.mass = this.radius * this.radius;
+            this.color = [COLORS.green, COLORS.cyan, COLORS.pink, COLORS.yellow][Math.floor(Math.random() * 4)];
+            this.trail = [];
+        }
+
+        update() {
+            if (gravityOn) this.vy += GRAVITY;
+            this.vx *= FRICTION;
+            this.vy *= FRICTION;
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // Wall bouncing
+            if (this.x - this.radius < 0) { this.x = this.radius; this.vx *= -BOUNCE; }
+            if (this.x + this.radius > W) { this.x = W - this.radius; this.vx *= -BOUNCE; }
+            if (this.y - this.radius < 0) { this.y = this.radius; this.vy *= -BOUNCE; }
+            if (this.y + this.radius > H) { this.y = H - this.radius; this.vy *= -BOUNCE; }
+
+            // Trail
+            this.trail.push({ x: this.x, y: this.y });
+            if (this.trail.length > 8) this.trail.shift();
+        }
+
+        draw() {
+            // Trail
+            for (let i = 0; i < this.trail.length - 1; i++) {
+                const alpha = (i / this.trail.length) * 0.3;
+                ctx.beginPath();
+                ctx.arc(this.trail[i].x, this.trail[i].y, this.radius * 0.5, 0, Math.PI * 2);
+                ctx.fillStyle = this.color + Math.max(0, Math.min(255, Math.floor(alpha * 255))).toString(16).padStart(2, '0');
+                ctx.fill();
+            }
+            // Particle
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            // Glow
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius * 2, 0, Math.PI * 2);
+            const gradient = ctx.createRadialGradient(this.x, this.y, this.radius * 0.5, this.x, this.y, this.radius * 2);
+            gradient.addColorStop(0, this.color + '40');
+            gradient.addColorStop(1, this.color + '00');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+        }
+    }
+
+    function checkCollision(a, b) {
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < a.radius + b.radius) {
+            // Elastic collision
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const p = 2 * (a.vx * nx + a.vy * ny - b.vx * nx - b.vy * ny) / (a.mass + b.mass);
+            a.vx -= p * b.mass * nx;
+            a.vy -= p * b.mass * ny;
+            b.vx += p * a.mass * nx;
+            b.vy += p * a.mass * ny;
+            // Separate
+            const overlap = (a.radius + b.radius - dist) / 2;
+            a.x -= overlap * nx;
+            a.y -= overlap * ny;
+            b.x += overlap * nx;
+            b.y += overlap * ny;
+            stats.comps++;
+        }
+    }
+
+    function initPhysics() {
+        particles = [];
+        for (let i = 0; i < 30; i++) {
+            particles.push(new Particle(
+                Math.random() * W * 0.8 + W * 0.1,
+                Math.random() * H * 0.5
+            ));
+        }
+        stats.elements = particles.length;
+        updateStats();
+        physicsLoop();
+    }
+
+    function physicsLoop() {
+        if (currentMode !== 'physics') return;
+
+        ctx.fillStyle = COLORS.card + 'dd';
+        ctx.fillRect(0, 0, W, H);
+
+        stats.ops++;
+        // Update & collisions
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].update();
+            for (let j = i + 1; j < particles.length; j++) {
+                checkCollision(particles[i], particles[j]);
+            }
+        }
+
+        // Draw
+        for (const p of particles) p.draw();
+
+        stats.elements = particles.length;
+        stats.time = Math.round(stats.ops / 60 * 1000);
+        updateStats();
+
+        animationId = requestAnimationFrame(physicsLoop);
+    }
+
+    function spawnParticlesAt(e) {
+        if (currentMode !== 'physics') return;
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        for (let i = 0; i < 5; i++) {
+            particles.push(new Particle(x, y,
+                (Math.random() - 0.5) * 12,
+                (Math.random() - 0.5) * 12
+            ));
+        }
+    }
+
+    document.getElementById('addParticlesBtn').addEventListener('click', () => {
+        for (let i = 0; i < 10; i++) {
+            particles.push(new Particle(
+                Math.random() * W * 0.8 + W * 0.1,
+                Math.random() * H * 0.3
+            ));
+        }
+    });
+
+    document.getElementById('gravityToggle').addEventListener('click', () => {
+        gravityOn = !gravityOn;
+        document.getElementById('gravityToggle').textContent = gravityOn ? 'Gravity: ON' : 'Gravity: OFF';
+    });
+
+    document.getElementById('clearParticles').addEventListener('click', () => {
+        particles = [];
+        stats.ops = 0;
+        stats.comps = 0;
+    });
+
+    // ── INIT ──
+    resizeCanvas();
+    initSort();
+
+})();
+</script>
+</body>
+</html>
