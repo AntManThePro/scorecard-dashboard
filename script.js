@@ -617,9 +617,24 @@ function toggleTheme() {
 
 function loadTheme() {
     const saved = localStorage.getItem('theme');
+
+    // Determine effective theme: saved preference, else system preference, else default light
+    let effectiveTheme = saved;
+    if (!effectiveTheme) {
+        const prefersDark = typeof window !== 'undefined'
+            && typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        effectiveTheme = prefersDark ? 'dark' : 'light';
+    }
+
+    // Apply explicit saved preference to document attribute
     if (saved) {
         document.documentElement.setAttribute('data-theme', saved);
-        themeToggle.textContent = saved === 'dark' ? '☀️' : '🌙';
+    }
+
+    // Always align toggle icon with effective theme
+    if (typeof themeToggle !== 'undefined' && themeToggle) {
+        themeToggle.textContent = effectiveTheme === 'dark' ? '☀️' : '🌙';
     }
 }
 
