@@ -862,34 +862,48 @@
         return null;
     }
 
-    function handleGridInput(e) {
+    function handleGridInput(e, paintValue) {
         if (currentMode !== 'pathfind' || isRunning) return;
         const cell = getGridCell(e);
         if (!cell) return;
 
         if (pathTool === 'wall') {
             if (grid[cell.r][cell.c] !== CELL_START && grid[cell.r][cell.c] !== CELL_END) {
-                grid[cell.r][cell.c] = grid[cell.r][cell.c] === CELL_WALL ? CELL_EMPTY : CELL_WALL;
+                // Determine the paint value on the first event of a drag (or on click),
+                // then reuse it for subsequent drag events to avoid re-toggling.
+                if (typeof paintValue === 'undefined') {
+                    const newValue = grid[cell.r][cell.c] === CELL_WALL ? CELL_EMPTY : CELL_WALL;
+                    grid[cell.r][cell.c] = newValue;
+                    handleGridInput.paintValue = newValue;
+                } else {
+                    grid[cell.r][cell.c] = paintValue;
+                }
             }
         } else if (pathTool === 'start') {
             if (startCell) grid[startCell.r][startCell.c] = CELL_EMPTY;
             startCell = cell;
             grid[cell.r][cell.c] = CELL_START;
+            handleGridInput.paintValue = undefined;
         } else if (pathTool === 'end') {
             if (endCell) grid[endCell.r][endCell.c] = CELL_EMPTY;
             endCell = cell;
             grid[cell.r][cell.c] = CELL_END;
+            handleGridInput.paintValue = undefined;
         }
         drawGrid();
     }
 
     canvas.addEventListener('mousedown', (e) => {
         isDrawing = true;
+        // Reset paintValue at the start of a new drag so the first cell decides it.
+        handleGridInput.paintValue = undefined;
         handleGridInput(e);
         if (currentMode === 'physics') spawnParticlesAt(e);
     });
     canvas.addEventListener('mousemove', (e) => {
-        if (isDrawing && pathTool === 'wall') handleGridInput(e);
+        if (isDrawing && pathTool === 'wall') {
+            handleGridInput(e, handleGridInput.paintValue);
+        }
     });
     canvas.addEventListener('mouseup', () => { isDrawing = false; });
 
