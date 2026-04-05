@@ -15,6 +15,7 @@ let currentRole = 'admin';
 const LABOR_THRESHOLD_HIGH = 30; // Labor % above this shows red
 const LABOR_THRESHOLD_BONUS = 32; // Labor % below this qualifies for bonus
 const MAX_JOBS_PER_WEEK = 7; // Maximum expected jobs per week for 100% completion
+const TREND_THRESHOLD = 0.5; // Minimum momentum change to register as trending up/down
 
 // DOM Elements
 const userRoleSelect = document.getElementById('userRole');
@@ -26,12 +27,15 @@ const jobsCompletedInput = document.getElementById('jobsCompletedInput');
 const addEntryBtn = document.getElementById('addEntryBtn');
 const exportBtn = document.getElementById('exportBtn');
 const saveBtn = document.getElementById('saveBtn');
+const resetBtn = document.getElementById('resetBtn');
+const themeToggle = document.getElementById('themeToggle');
 const weeklyTableBody = document.getElementById('weeklyTableBody');
 const weeklyTableFoot = document.getElementById('weeklyTableFoot');
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
     loadFromLocalStorage();
+    loadTheme();
     setupEventListeners();
     updateUI();
 });
@@ -42,6 +46,8 @@ function setupEventListeners() {
     addEntryBtn.addEventListener('click', handleAddEntry);
     exportBtn.addEventListener('click', handleExport);
     saveBtn.addEventListener('click', handleSaveSnapshot);
+    resetBtn.addEventListener('click', handleResetWeek);
+    themeToggle.addEventListener('click', toggleTheme);
     laborInput.addEventListener('input', handleLaborInputChange);
 }
 
@@ -64,9 +70,10 @@ function updateUIBasedOnRole() {
     jobsCompletedInput.disabled = isViewer;
     addEntryBtn.disabled = isViewer;
 
-    // Only admins can save and export
+    // Only admins can save, export, and reset
     saveBtn.disabled = currentRole !== 'admin';
     exportBtn.disabled = currentRole !== 'admin';
+    resetBtn.disabled = currentRole !== 'admin';
 
     // Update delete buttons in table
     const deleteButtons = document.querySelectorAll('.btn-delete');
@@ -222,13 +229,43 @@ function deleteEntry(day) {
 // Update Metrics
 function updateMetrics() {
     const metrics = calculateWeeklyMetrics();
+    const trends = calculateTrends();
     
-    document.getElementById('totalRevenue').textContent = `$${metrics.totalRevenue.toFixed(2)}`;
-    document.getElementById('avgLabor').textContent = `${metrics.avgLabor.toFixed(1)}%`;
+    document.getElementById('totalRevenue').innerHTML = `$${metrics.totalRevenue.toFixed(2)}${trendBadge(trends.revenue)}`;
+    document.getElementById('avgLabor').innerHTML = `${metrics.avgLabor.toFixed(1)}%${trendBadge(trends.labor, true)}`;
     document.getElementById('totalHours').textContent = metrics.totalHours.toFixed(1);
     document.getElementById('totalJobs').textContent = metrics.totalJobs;
     document.getElementById('avgRevenuePerJob').textContent = `$${metrics.avgRevenuePerJob.toFixed(2)}`;
     document.getElementById('laborEfficiency').textContent = `$${metrics.laborEfficiency.toFixed(2)}/hr`;
+}
+
+// Calculate Trends from daily data
+function calculateTrends() {
+    const days = Object.keys(weeklyData);
+    const revenueData = days.map(d => weeklyData[d].revenue).filter(v => v > 0);
+    const laborData = days.map(d => weeklyData[d].labor).filter(v => v > 0);
+    
+    return {
+        revenue: momentum(revenueData),
+        labor: momentum(laborData)
+    };
+}
+
+// Momentum: calculates the difference between the last two nonzero values
+// to determine whether the metric is trending up, down, or flat.
+function momentum(values) {
+    if (values.length < 2) return 0;
+    return values[values.length - 1] - values[values.length - 2];
+}
+
+// Generate trend badge HTML based on momentum value
+function trendBadge(value, invert) {
+    if (value === 0) return '';
+    // For labor, lower is better so invert the direction
+    const direction = invert ? -value : value;
+    if (direction > TREND_THRESHOLD) return ' <span class="trend-indicator trend-up">▲</span>';
+    if (direction < -TREND_THRESHOLD) return ' <span class="trend-indicator trend-down">▼</span>';
+    return ' <span class="trend-indicator trend-flat">—</span>';
 }
 
 // Update Bonus Indicator
@@ -549,6 +586,55 @@ function triggerConfetti() {
                 piece.remove();
             }, 4000);
         }, i * 20);
+    }
+}
+
+// Handle Reset Week
+function handleResetWeek() {
+    if (currentRole !== 'admin') {
+        alert('Only admins can reset the week.');
+        return;
+    }
+
+    if (confirm('Reset all data for the current week? This cannot be undone. Consider saving a snapshot first.')) {
+        Object.keys(weeklyData).forEach(day => {
+            weeklyData[day] = { revenue: 0, labor: 0, hours: 0, jobs: 0 };
+        });
+        updateUI();
+        saveToLocalStorage();
+    }
+}
+
+// Dark Mode Toggle
+function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    themeToggle.textContent = next === 'dark' ? '☀️' : '🌙';
+    localStorage.setItem('theme', next);
+}
+
+function loadTheme() {
+    const saved = localStorage.getItem('theme');
+
+    // Determine effective theme: saved preference, else system preference, else default light
+    let effectiveTheme = saved;
+    if (!effectiveTheme) {
+        const prefersDark = typeof window !== 'undefined'
+            && typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        effectiveTheme = prefersDark ? 'dark' : 'light';
+    }
+
+    // Apply explicit saved preference to document attribute
+    if (saved) {
+        document.documentElement.setAttribute('data-theme', saved);
+    }
+
+    // Always align toggle icon with effective theme
+    if (typeof themeToggle !== 'undefined' && themeToggle) {
+        themeToggle.textContent = effectiveTheme === 'dark' ? '☀️' : '🌙';
     }
 }
 
