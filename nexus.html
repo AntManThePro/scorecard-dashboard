@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS Algorithm Theater — DoubleA Portfolio</title>
+    <title>NEXUS Algorithm Theater &mdash; DoubleA Portfolio</title>
     <style>
         /* ═══════════════════════════════════════════════════════
            NEXUS AESTHETIC — #00ff87 #60efff #ff0080 #ffcc00
@@ -362,7 +362,7 @@
 
 <div class="container">
     <nav class="nexus-header">
-        <a href="index.html" class="back-link">← DASHBOARD</a>
+        <a href="index.html" class="back-link">&larr; DASHBOARD</a>
         <h1>NEXUS ALGORITHM THEATER</h1>
         <p class="subtitle">Interactive Algorithm Visualization Engine</p>
         <span class="author-tag">DoubleA @ AntManThePro</span>
@@ -407,7 +407,7 @@
         <button class="ctrl-btn" data-algo="merge">Merge Sort</button>
         <button class="ctrl-btn" data-algo="heap">Heap Sort</button>
         <button class="ctrl-btn" data-algo="insertion">Insertion Sort</button>
-        <button class="ctrl-btn" id="shuffleBtn">⟳ Shuffle</button>
+        <button class="ctrl-btn" id="shuffleBtn">&#x27F3; Shuffle</button>
         <div class="speed-slider">
             <span>Speed</span>
             <input type="range" id="speedSlider" min="1" max="100" value="50">
@@ -443,13 +443,13 @@
     <!-- Info Panel -->
     <div class="info-panel" id="infoPanel">
         <h3>// SORTING ALGORITHMS</h3>
-        <p id="infoText">Select an algorithm to visualize it in real-time. Watch how different strategies compare elements and swap positions. Each bar represents a value — height encodes magnitude, color encodes state.</p>
-        <span class="complexity" id="infoComplexity">O(n²) avg</span>
+        <p id="infoText">Select an algorithm to visualize it in real-time. Watch how different strategies compare elements and swap positions. Each bar represents a value &mdash; height encodes magnitude, color encodes state.</p>
+        <span class="complexity" id="infoComplexity">O(n&sup2;) avg</span>
     </div>
 
     <footer class="nexus-footer">
-        <p>NEXUS ALGORITHM THEATER · Built by <a href="https://godmode2025.net" target="_blank" rel="noopener">DoubleA @ AntManThePro</a></p>
-        <p style="margin-top:0.5rem; font-size:0.6rem; color: #444;">Canvas API · SVG · Algorithmic Visualization · Zero Dependencies</p>
+        <p>NEXUS ALGORITHM THEATER &middot; Built by <a href="https://godmode2025.net" target="_blank" rel="noopener">DoubleA @ AntManThePro</a></p>
+        <p style="margin-top:0.5rem; font-size:0.6rem; color: #444;">Canvas API &middot; SVG &middot; Algorithmic Visualization &middot; Zero Dependencies</p>
     </footer>
 </div>
 
@@ -546,13 +546,13 @@
 
         if (mode === 'sort') {
             initSort();
-            setInfo('// SORTING ALGORITHMS', 'Select an algorithm to visualize it in real-time. Watch how different strategies compare elements and swap positions. Each bar represents a value — height encodes magnitude, color encodes state.', 'O(n²) avg');
+            setInfo('// SORTING ALGORITHMS', 'Select an algorithm to visualize it in real-time. Watch how different strategies compare elements and swap positions. Each bar represents a value \u2014 height encodes magnitude, color encodes state.', 'O(n\u00B2) avg');
         } else if (mode === 'pathfind') {
             initPathfind();
             setInfo('// PATHFINDING ALGORITHMS', 'Click to draw walls, set start/end points, then run an algorithm. Watch the frontier expand in real-time. Green = explored, pink = path found, cyan = frontier.', 'O(V + E)');
         } else if (mode === 'physics') {
             initPhysics();
-            setInfo('// PARTICLE PHYSICS', 'Click anywhere on the canvas to spawn particles. They interact with gravity and bounce off walls. Each collision is calculated using real physics — momentum, elasticity, and force vectors.', 'O(n²) collision');
+            setInfo('// PARTICLE PHYSICS', 'Click anywhere on the canvas to spawn particles. They interact with gravity and bounce off walls. Each collision is calculated using real physics \u2014 momentum, elasticity, and force vectors.', 'O(n\u00B2) collision');
         }
     }
 
@@ -780,11 +780,11 @@
             if (isRunning) return;
             const algo = btn.dataset.algo;
             const infoMap = {
-                bubble:    { text: 'Bubble Sort repeatedly steps through the list, comparing adjacent elements and swapping them if they\'re in the wrong order. Simple but O(n²).', complexity: 'O(n²) worst/avg' },
+                bubble:    { text: 'Bubble Sort repeatedly steps through the list, comparing adjacent elements and swapping them if they\'re in the wrong order. Simple but O(n\u00B2).', complexity: 'O(n\u00B2) worst/avg' },
                 quick:     { text: 'Quick Sort picks a pivot and partitions the array around it. Recursively sorts sub-arrays. Extremely fast in practice.', complexity: 'O(n log n) avg' },
                 merge:     { text: 'Merge Sort divides the array in half, recursively sorts each half, then merges them back. Stable and guaranteed O(n log n).', complexity: 'O(n log n) guaranteed' },
                 heap:      { text: 'Heap Sort builds a max-heap then repeatedly extracts the maximum element. In-place and O(n log n) guaranteed.', complexity: 'O(n log n) guaranteed' },
-                insertion: { text: 'Insertion Sort builds the sorted array one item at a time. Efficient for small or nearly-sorted datasets.', complexity: 'O(n²) worst, O(n) best' }
+                insertion: { text: 'Insertion Sort builds the sorted array one item at a time. Efficient for small or nearly-sorted datasets.', complexity: 'O(n\u00B2) worst, O(n) best' }
             };
             setInfo('// ' + algo.toUpperCase() + ' SORT', infoMap[algo].text, infoMap[algo].complexity);
 
@@ -1103,7 +1103,7 @@
             const algo = btn.dataset.path;
             const infoMap = {
                 astar:    { text: 'A* Search uses a heuristic (Manhattan distance) to guide exploration toward the goal. Optimal and efficient for grid-based pathfinding.', complexity: 'O(E) with good heuristic' },
-                dijkstra: { text: 'Dijkstra\'s algorithm explores all directions equally, guaranteeing the shortest path. No heuristic — pure exhaustive shortest-path search.', complexity: 'O(V²) or O(E + V log V)' },
+                dijkstra: { text: 'Dijkstra\'s algorithm explores all directions equally, guaranteeing the shortest path. No heuristic \u2014 pure exhaustive shortest-path search.', complexity: 'O(V\u00B2) or O(E + V log V)' },
                 bfs:      { text: 'Breadth-First Search explores level by level from the start. Guarantees shortest path in unweighted graphs. Simple and powerful.', complexity: 'O(V + E)' },
                 dfs:      { text: 'Depth-First Search dives deep before backtracking. Does NOT guarantee shortest path, but explores aggressively and uses less memory.', complexity: 'O(V + E)' }
             };
