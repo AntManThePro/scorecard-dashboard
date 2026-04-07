@@ -187,8 +187,8 @@ describe('getLaborClass', () => {
     expect(getLaborClass(0)).toBe('');
   });
 
-  it('should return "" when labor is exactly at LABOR_THRESHOLD_HIGH (30)', () => {
-    // 30 is NOT > 30, and it IS < 32 but the "good" branch also requires > 0
+  it('should return "good-labor" when labor is exactly at LABOR_THRESHOLD_HIGH (30)', () => {
+    // 30 is NOT > 30, but it is > 0 and < 32, so it matches the good-labor branch
     expect(getLaborClass(30)).toBe('good-labor');
   });
 
