@@ -154,8 +154,9 @@ describe('Snapshot storage', () => {
 
   it('should store snapshot id as a valid ISO timestamp string', () => {
     const snap = createSnapshot(FULL_WEEK_DATA, {});
-    expect(() => new Date(snap.id)).not.toThrow();
-    expect(new Date(snap.id).toISOString()).toBe(snap.id);
+    const date = new Date(snap.id);
+    expect(Number.isNaN(date.getTime())).toBe(false);
+    expect(date.toISOString()).toBe(snap.id);
   });
 
   it('should find a snapshot by id (simulating loadSnapshot)', () => {
