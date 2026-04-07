@@ -16,16 +16,11 @@ import {
   EMPTY_WEEK_DATA,
   PARTIAL_WEEK_DATA,
 } from '../helpers/test-data.js';
-import { clearStorage, seedLocalStorage } from '../helpers/dom-setup.js';
+import { clearStorage } from '../helpers/dom-setup.js';
 
 // ---------------------------------------------------------------------------
 // Replicated logic from app.js (kept pure for integration-level testing)
 // ---------------------------------------------------------------------------
-
-const LABOR_THRESHOLD_HIGH  = 30;
-const LABOR_THRESHOLD_BONUS = 32;
-const MAX_JOBS_PER_WEEK     = 7;
-
 function calculateWeeklyMetrics(weeklyData) {
   const days = Object.keys(weeklyData);
   let totalRevenue = 0, totalLabor = 0, totalHours = 0, totalJobs = 0, daysWithData = 0;
