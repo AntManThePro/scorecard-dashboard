@@ -35,8 +35,7 @@ function getSnapshots() {
 function saveSnapshot(weeklyData, metrics) {
   const timestamp = new Date().toISOString();
   const snapshots = getSnapshots();
-  // Append length to guarantee uniqueness when tests run within the same ms
-  const id = `${timestamp}-${snapshots.length}`;
+  const id = timestamp;
   const snapshot = {
     id,
     date: new Date().toLocaleString(),
