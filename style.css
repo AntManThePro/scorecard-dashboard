@@ -524,8 +524,22 @@ tfoot td {
     color: var(--text-primary);
 }
 
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .input-group input,
+    :root:not([data-theme="light"]) .input-group select {
+        background-color: var(--card-bg);
+        color: var(--text-primary);
+    }
+}
+
 :root[data-theme="dark"] header {
     background: linear-gradient(135deg, #1e40af, #1e3a5f);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) header {
+        background: linear-gradient(135deg, #1e40af, #1e3a5f);
+    }
 }
 
 /* Theme Toggle */

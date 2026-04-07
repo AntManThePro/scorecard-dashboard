@@ -263,9 +263,9 @@ function trendBadge(value, invert) {
     if (value === 0) return '';
     // For labor, lower is better so invert the direction
     const direction = invert ? -value : value;
-    if (direction > TREND_THRESHOLD) return ' <span class="trend-indicator trend-up">▲</span>';
-    if (direction < -TREND_THRESHOLD) return ' <span class="trend-indicator trend-down">▼</span>';
-    return ' <span class="trend-indicator trend-flat">—</span>';
+    if (direction > TREND_THRESHOLD) return ' <span class="trend-indicator trend-up">\u25B2</span>';
+    if (direction < -TREND_THRESHOLD) return ' <span class="trend-indicator trend-down">\u25BC</span>';
+    return ' <span class="trend-indicator trend-flat">\u2014</span>';
 }
 
 // Update Bonus Indicator
@@ -608,10 +608,17 @@ function handleResetWeek() {
 // Dark Mode Toggle
 function toggleTheme() {
     const html = document.documentElement;
-    const current = html.getAttribute('data-theme');
+    // Derive effective current theme: explicit attribute, else system preference, else light
+    let current = html.getAttribute('data-theme');
+    if (!current) {
+        const prefersDark = typeof window !== 'undefined'
+            && typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        current = prefersDark ? 'dark' : 'light';
+    }
     const next = current === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
-    themeToggle.textContent = next === 'dark' ? '☀️' : '🌙';
+    themeToggle.textContent = next === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
     localStorage.setItem('theme', next);
 }
 
@@ -634,7 +641,7 @@ function loadTheme() {
 
     // Always align toggle icon with effective theme
     if (typeof themeToggle !== 'undefined' && themeToggle) {
-        themeToggle.textContent = effectiveTheme === 'dark' ? '☀️' : '🌙';
+        themeToggle.textContent = effectiveTheme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
     }
 }
 

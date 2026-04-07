@@ -417,7 +417,7 @@
     <!-- Controls: Pathfinding -->
     <div id="pathControls" class="controls" style="display:none;">
         <div class="grid-controls">
-            <button class="grid-btn" data-tool="wall">Draw Walls</button>
+            <button class="grid-btn active" data-tool="wall">Draw Walls</button>
             <button class="grid-btn" data-tool="start">Set Start</button>
             <button class="grid-btn" data-tool="end">Set End</button>
             <button class="grid-btn" data-tool="clear">Clear Grid</button>
@@ -435,7 +435,7 @@
     <!-- Controls: Physics -->
     <div id="physicsControls" class="controls" style="display:none;">
         <button class="ctrl-btn" id="addParticlesBtn">+ Add Particles</button>
-        <button class="ctrl-btn" id="gravityToggle">Toggle Gravity</button>
+        <button class="ctrl-btn" id="gravityToggle">Gravity: ON</button>
         <button class="ctrl-btn" id="clearParticles">Clear All</button>
         <p class="physics-info">Click or tap on the canvas to spawn particles with force</p>
     </div>
@@ -548,6 +548,9 @@
             initSort();
             setInfo('// SORTING ALGORITHMS', 'Select an algorithm to visualize it in real-time. Watch how different strategies compare elements and swap positions. Each bar represents a value \u2014 height encodes magnitude, color encodes state.', 'O(n\u00B2) avg');
         } else if (mode === 'pathfind') {
+            pathTool = 'wall';
+            document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-tool="wall"]').classList.add('active');
             initPathfind();
             setInfo('// PATHFINDING ALGORITHMS', 'Click to draw walls, set start/end points, then run an algorithm. Watch the frontier expand in real-time. Green = explored, pink = path found, cyan = frontier.', 'O(V + E)');
         } else if (mode === 'physics') {
@@ -1120,6 +1123,8 @@
     const GRAVITY = 0.15;
     const FRICTION = 0.999;
     const BOUNCE = 0.8;
+    const MAX_PARTICLES = 200;
+    let physicsStartTime = 0;
 
     class Particle {
         constructor(x, y, vx, vy) {
@@ -1208,6 +1213,9 @@
 
     function initPhysics() {
         particles = [];
+        gravityOn = true;
+        document.getElementById('gravityToggle').textContent = 'Gravity: ON';
+        physicsStartTime = performance.now();
         for (let i = 0; i < 30; i++) {
             particles.push(new Particle(
                 Math.random() * W * 0.8 + W * 0.1,
@@ -1238,7 +1246,7 @@
         for (const p of particles) p.draw();
 
         stats.elements = particles.length;
-        stats.time = Math.round(stats.ops / 60 * 1000);
+        stats.time = Math.round(performance.now() - physicsStartTime);
         updateStats();
 
         animationId = requestAnimationFrame(physicsLoop);
@@ -1246,12 +1254,14 @@
 
     function spawnParticlesAt(e) {
         if (currentMode !== 'physics') return;
+        if (particles.length >= MAX_PARTICLES) return;
         const rect = canvas.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         const x = clientX - rect.left;
         const y = clientY - rect.top;
-        for (let i = 0; i < 5; i++) {
+        const count = Math.min(5, MAX_PARTICLES - particles.length);
+        for (let i = 0; i < count; i++) {
             particles.push(new Particle(x, y,
                 (Math.random() - 0.5) * 12,
                 (Math.random() - 0.5) * 12
@@ -1260,7 +1270,8 @@
     }
 
     document.getElementById('addParticlesBtn').addEventListener('click', () => {
-        for (let i = 0; i < 10; i++) {
+        const count = Math.min(10, MAX_PARTICLES - particles.length);
+        for (let i = 0; i < count; i++) {
             particles.push(new Particle(
                 Math.random() * W * 0.8 + W * 0.1,
                 Math.random() * H * 0.3
