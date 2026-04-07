@@ -38,9 +38,8 @@ function clickSnapshotDeleteBtn() {
   snapshotActions[snapshotActions.length - 1].click();
 }
 
-/** Click Save Snapshot and suppress the browser alert. */
+/** Click Save Snapshot. */
 function saveSnapshot() {
-  jest.spyOn(window, 'alert').mockImplementation(() => {});
   document.getElementById('saveBtn').click();
 }
 
