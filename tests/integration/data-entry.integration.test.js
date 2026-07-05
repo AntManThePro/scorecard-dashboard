@@ -19,6 +19,12 @@ import {
 import { clearStorage } from '../helpers/dom-setup.js';
 
 // ---------------------------------------------------------------------------
+// Constants mirroring app.js
+// ---------------------------------------------------------------------------
+const LABOR_THRESHOLD_BONUS = 32;
+const MAX_JOBS_PER_WEEK     = 7;
+
+// ---------------------------------------------------------------------------
 // Replicated logic from app.js (kept pure for integration-level testing)
 // ---------------------------------------------------------------------------
 function calculateWeeklyMetrics(weeklyData) {
