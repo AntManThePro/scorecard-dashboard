@@ -231,8 +231,16 @@ function updateMetrics() {
     const metrics = calculateWeeklyMetrics();
     const trends = calculateTrends();
     
-    document.getElementById('totalRevenue').innerHTML = `$${metrics.totalRevenue.toFixed(2)}${trendBadge(trends.revenue)}`;
-    document.getElementById('avgLabor').innerHTML = `${metrics.avgLabor.toFixed(1)}%${trendBadge(trends.labor, true)}`;
+    setMetricWithTrend(
+        document.getElementById('totalRevenue'),
+        `$${metrics.totalRevenue.toFixed(2)}`,
+        trendBadge(trends.revenue)
+    );
+    setMetricWithTrend(
+        document.getElementById('avgLabor'),
+        `${metrics.avgLabor.toFixed(1)}%`,
+        trendBadge(trends.labor, true)
+    );
     document.getElementById('totalHours').textContent = metrics.totalHours.toFixed(1);
     document.getElementById('totalJobs').textContent = metrics.totalJobs;
     document.getElementById('avgRevenuePerJob').textContent = `$${metrics.avgRevenuePerJob.toFixed(2)}`;
@@ -258,14 +266,25 @@ function momentum(values) {
     return values[values.length - 1] - values[values.length - 2];
 }
 
-// Generate trend badge HTML based on momentum value
+function setMetricWithTrend(element, valueText, trend) {
+    element.textContent = valueText;
+    if (!trend) return;
+
+    element.append(' ');
+    const indicator = document.createElement('span');
+    indicator.className = `trend-indicator ${trend.className}`;
+    indicator.textContent = trend.symbol;
+    element.appendChild(indicator);
+}
+
+// Generate trend badge data based on momentum value
 function trendBadge(value, invert) {
-    if (value === 0) return '';
+    if (value === 0) return null;
     // For labor, lower is better so invert the direction
     const direction = invert ? -value : value;
-    if (direction > TREND_THRESHOLD) return ' <span class="trend-indicator trend-up">\u25B2</span>';
-    if (direction < -TREND_THRESHOLD) return ' <span class="trend-indicator trend-down">\u25BC</span>';
-    return ' <span class="trend-indicator trend-flat">\u2014</span>';
+    if (direction > TREND_THRESHOLD) return { className: 'trend-up', symbol: '\u25B2' };
+    if (direction < -TREND_THRESHOLD) return { className: 'trend-down', symbol: '\u25BC' };
+    return { className: 'trend-flat', symbol: '\u2014' };
 }
 
 // Update Bonus Indicator
