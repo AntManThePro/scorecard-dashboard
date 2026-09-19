@@ -548,9 +548,7 @@
             initSort();
             setInfo('// SORTING ALGORITHMS', 'Select an algorithm to visualize it in real-time. Watch how different strategies compare elements and swap positions. Each bar represents a value \u2014 height encodes magnitude, color encodes state.', 'O(n\u00B2) avg');
         } else if (mode === 'pathfind') {
-            pathTool = 'wall';
-            document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
-            document.querySelector('[data-tool="wall"]').classList.add('active');
+            setPathTool('wall');
             initPathfind();
             setInfo('// PATHFINDING ALGORITHMS', 'Click to draw walls, set start/end points, then run an algorithm. Watch the frontier expand in real-time. Green = explored, pink = path found, cyan = frontier.', 'O(V + E)');
         } else if (mode === 'physics') {
@@ -810,9 +808,21 @@
     let startCell = null, endCell = null;
     let pathTool = 'wall';
     let isDrawing = false;
+    const pathToolButtons = document.querySelectorAll('[data-tool]');
 
     const CELL_EMPTY = 0, CELL_WALL = 1, CELL_START = 2, CELL_END = 3;
     const CELL_VISITED = 4, CELL_FRONTIER = 5, CELL_PATH = 6;
+
+    function syncPathToolButtons() {
+        pathToolButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tool === pathTool);
+        });
+    }
+
+    function setPathTool(tool) {
+        pathTool = tool;
+        syncPathToolButtons();
+    }
 
     function initPathfind() {
         gridCols = Math.floor(W / GRID_SIZE);
@@ -824,6 +834,7 @@
         grid[endCell.r][endCell.c] = CELL_END;
         stats.elements = gridCols * gridRows;
         updateStats();
+        syncPathToolButtons();
         drawGrid();
     }
 
@@ -930,9 +941,7 @@
                 if (!isRunning) initPathfind();
                 return;
             }
-            document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            pathTool = btn.dataset.tool;
+            setPathTool(btn.dataset.tool);
         });
     });
 
