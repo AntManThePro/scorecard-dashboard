@@ -894,11 +894,13 @@
                 }
             }
         } else if (pathTool === 'start') {
+            if (endCell && cell.r === endCell.r && cell.c === endCell.c) return;
             if (startCell) grid[startCell.r][startCell.c] = CELL_EMPTY;
             startCell = cell;
             grid[cell.r][cell.c] = CELL_START;
             handleGridInput.paintValue = undefined;
         } else if (pathTool === 'end') {
+            if (startCell && cell.r === startCell.r && cell.c === startCell.c) return;
             if (endCell) grid[endCell.r][endCell.c] = CELL_EMPTY;
             endCell = cell;
             grid[cell.r][cell.c] = CELL_END;
