@@ -418,7 +418,7 @@
 
     <!-- Canvas Stage -->
     <div class="stage">
-        <canvas id="mainCanvas" tabindex="0" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
+        <canvas id="mainCanvas" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
     </div>
     <p id="canvasKeyboardHelp" class="sr-only">In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1 for walls, 2 for start, 3 for end, Space or Enter to apply the selected tool, and Delete or Backspace to clear the focused cell.</p>
 
@@ -502,11 +502,16 @@
 
     function syncCanvasAccessibility(mode = currentMode) {
         if (mode === 'pathfind') {
+            canvas.setAttribute('tabindex', '0');
             canvas.setAttribute('role', 'application');
             canvas.setAttribute('aria-describedby', 'canvasKeyboardHelp');
         } else {
+            canvas.removeAttribute('tabindex');
             canvas.removeAttribute('role');
             canvas.removeAttribute('aria-describedby');
+            if (document.activeElement === canvas) {
+                canvas.blur();
+            }
         }
     }
 
