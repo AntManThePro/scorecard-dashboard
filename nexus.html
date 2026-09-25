@@ -420,8 +420,6 @@
     <div class="stage">
         <canvas id="mainCanvas" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
     </div>
-    <p id="canvasKeyboardHelp" class="sr-only" aria-hidden="true">In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1, 2, or 3 on the number row or numpad to switch tools, Enter to apply the selected tool, and Delete or Backspace to clear the focused non-start/end cell.</p>
-    <div id="canvasStatus" class="sr-only" aria-live="off" aria-atomic="true" aria-hidden="true"></div>
 
     <!-- Controls: Sorting -->
     <div id="sortControls" class="controls">
@@ -453,6 +451,8 @@
             <label for="pathSpeedSlider">Pathfinding speed</label>
             <input type="range" id="pathSpeedSlider" min="1" max="100" value="50">
         </div>
+        <p id="canvasKeyboardHelp" class="sr-only">In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1, 2, or 3 on the number row or numpad to switch tools, Enter to apply the selected tool, and Delete or Backspace to clear the focused non-start/end cell.</p>
+        <div id="canvasStatus" class="sr-only" aria-live="off" aria-atomic="true"></div>
     </div>
 
     <!-- Controls: Physics -->
@@ -508,14 +508,10 @@
         if (mode === 'pathfind') {
             canvas.setAttribute('tabindex', '0');
             canvas.setAttribute('aria-describedby', 'canvasKeyboardHelp');
-            canvasKeyboardHelp.setAttribute('aria-hidden', 'false');
-            canvasStatus.setAttribute('aria-hidden', 'false');
             canvasStatus.setAttribute('aria-live', 'polite');
         } else {
             canvas.removeAttribute('tabindex');
             canvas.removeAttribute('aria-describedby');
-            canvasKeyboardHelp.setAttribute('aria-hidden', 'true');
-            canvasStatus.setAttribute('aria-hidden', 'true');
             canvasStatus.setAttribute('aria-live', 'off');
             canvasStatus.textContent = '';
             if (document.activeElement === canvas) {
