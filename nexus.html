@@ -900,7 +900,7 @@
             }
         }
 
-        if (focusedCell) {
+        if (currentMode === 'pathfind' && focusedCell) {
             const focusX = focusedCell.c * GRID_SIZE;
             const focusY = focusedCell.r * GRID_SIZE;
             ctx.strokeStyle = COLORS.yellow;
