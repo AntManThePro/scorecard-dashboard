@@ -502,6 +502,7 @@
     const canvasStatus = document.getElementById('canvasStatus');
     const ctx = canvas.getContext('2d');
     let W, H, dpr;
+    let canvasAnnouncementTimer = null;
 
     function syncCanvasAccessibility(mode = currentMode) {
         if (mode === 'pathfind') {
@@ -516,6 +517,10 @@
             canvas.removeAttribute('aria-describedby');
             canvasKeyboardHelp.hidden = true;
             canvasStatus.hidden = true;
+            if (canvasAnnouncementTimer) {
+                clearTimeout(canvasAnnouncementTimer);
+                canvasAnnouncementTimer = null;
+            }
             canvasStatus.textContent = '';
             if (document.activeElement === canvas) {
                 canvas.blur();
@@ -1020,7 +1025,15 @@
 
     function announceFocusedCell() {
         if (!canvasStatus || currentMode !== 'pathfind' || !focusedCell) return;
-        canvasStatus.textContent = `Row ${focusedCell.r + 1}, column ${focusedCell.c + 1}, ${describeCell(focusedCell)} cell, ${pathTool} tool selected.`;
+        const message = `Row ${focusedCell.r + 1}, column ${focusedCell.c + 1}, ${describeCell(focusedCell)} cell, ${pathTool} tool selected.`;
+        if (canvasAnnouncementTimer) {
+            clearTimeout(canvasAnnouncementTimer);
+        }
+        canvasStatus.textContent = '';
+        canvasAnnouncementTimer = setTimeout(() => {
+            canvasStatus.textContent = message;
+            canvasAnnouncementTimer = null;
+        }, 0);
     }
 
     function handleCanvasKeydown(e) {
