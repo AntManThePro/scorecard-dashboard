@@ -451,8 +451,8 @@
             <label for="pathSpeedSlider">Pathfinding speed</label>
             <input type="range" id="pathSpeedSlider" min="1" max="100" value="50">
         </div>
-        <p id="canvasKeyboardHelp" class="sr-only">In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1, 2, or 3 on the number row or numpad to switch tools, Enter to apply the selected tool, and Delete or Backspace to clear the focused non-start/end cell.</p>
-        <div id="canvasStatus" class="sr-only" aria-live="off" aria-atomic="true"></div>
+        <p id="canvasKeyboardHelp" class="sr-only" aria-hidden="true">In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1, 2, or 3 on the number row or numpad to switch tools, Enter to apply the selected tool, and Delete or Backspace to clear the focused non-start/end cell.</p>
+        <div id="canvasStatus" class="sr-only" aria-live="off" aria-atomic="true" aria-hidden="true"></div>
     </div>
 
     <!-- Controls: Physics -->
@@ -504,16 +504,29 @@
     let W, H, dpr;
     let canvasAnnouncementToggle = false;
 
+    function activateCanvasKeyboardAccessibility() {
+        if (currentMode !== 'pathfind') return;
+        canvas.setAttribute('aria-describedby', 'canvasKeyboardHelp');
+        canvasKeyboardHelp.setAttribute('aria-hidden', 'false');
+        canvasStatus.setAttribute('aria-hidden', 'false');
+        canvasStatus.setAttribute('aria-live', 'polite');
+    }
+
+    function deactivateCanvasKeyboardAccessibility() {
+        canvas.removeAttribute('aria-describedby');
+        canvasKeyboardHelp.setAttribute('aria-hidden', 'true');
+        canvasStatus.setAttribute('aria-hidden', 'true');
+        canvasStatus.setAttribute('aria-live', 'off');
+        canvasStatus.textContent = '';
+    }
+
     function syncCanvasAccessibility(mode = currentMode) {
         if (mode === 'pathfind') {
             canvas.setAttribute('tabindex', '0');
-            canvas.setAttribute('aria-describedby', 'canvasKeyboardHelp');
-            canvasStatus.setAttribute('aria-live', 'polite');
+            deactivateCanvasKeyboardAccessibility();
         } else {
             canvas.removeAttribute('tabindex');
-            canvas.removeAttribute('aria-describedby');
-            canvasStatus.setAttribute('aria-live', 'off');
-            canvasStatus.textContent = '';
+            deactivateCanvasKeyboardAccessibility();
             if (document.activeElement === canvas) {
                 canvas.blur();
             }
@@ -1149,6 +1162,8 @@
             handleGridInput(e, handleGridInput.paintValue);
         }
     });
+    canvas.addEventListener('focus', activateCanvasKeyboardAccessibility);
+    canvas.addEventListener('blur', deactivateCanvasKeyboardAccessibility);
     canvas.addEventListener('keydown', handleCanvasKeydown);
     window.addEventListener('mouseup', stopDrawing);
 
