@@ -1064,7 +1064,8 @@
 
     function announceFocusedCell() {
         if (!canvasStatus || currentMode !== 'pathfind' || !focusedCell) return;
-        const message = `Row ${focusedCell.r + 1}, column ${focusedCell.c + 1}, ${describeCell(focusedCell)} cell, ${pathTool} tool selected.`;
+        const toolLabels = { wall: 'Draw Walls', start: 'Set Start', end: 'Set End' };
+        const message = `Row ${focusedCell.r + 1}, column ${focusedCell.c + 1}, ${describeCell(focusedCell)} cell, ${toolLabels[pathTool] || pathTool} tool selected.`;
         canvasAnnouncementToggle = !canvasAnnouncementToggle;
         canvasStatus.textContent = `${message}${canvasAnnouncementToggle ? '\u200B' : ''}`;
     }
