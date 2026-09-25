@@ -937,10 +937,8 @@
 
     function clearFocusedCell(cell) {
         const currentValue = grid[cell.r][cell.c];
-        if (currentValue === CELL_START) {
-            startCell = null;
-        } else if (currentValue === CELL_END) {
-            endCell = null;
+        if (currentValue === CELL_START || currentValue === CELL_END) {
+            return;
         }
         grid[cell.r][cell.c] = CELL_EMPTY;
         drawGrid();
@@ -1043,10 +1041,12 @@
     }
 
     canvas.addEventListener('mousedown', (e) => {
-        isDrawing = true;
-        // Reset paintValue at the start of a new drag so the first cell decides it.
-        handleGridInput.paintValue = undefined;
-        handleGridInput(e);
+        if (currentMode === 'pathfind') {
+            isDrawing = true;
+            // Reset paintValue at the start of a new drag so the first cell decides it.
+            handleGridInput.paintValue = undefined;
+            handleGridInput(e);
+        }
         if (currentMode === 'physics') spawnParticlesAt(e);
     });
     canvas.addEventListener('mousemove', (e) => {
@@ -1059,9 +1059,11 @@
 
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        isDrawing = true;
-        handleGridInput.paintValue = undefined;
-        handleGridInput(e);
+        if (currentMode === 'pathfind') {
+            isDrawing = true;
+            handleGridInput.paintValue = undefined;
+            handleGridInput(e);
+        }
         if (currentMode === 'physics') spawnParticlesAt(e);
     }, { passive: false });
     canvas.addEventListener('touchmove', (e) => {
