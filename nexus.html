@@ -523,9 +523,11 @@
     function syncCanvasAccessibility(mode = currentMode) {
         if (mode === 'pathfind') {
             canvas.setAttribute('tabindex', '0');
+            canvas.setAttribute('aria-label', 'Interactive pathfinding grid canvas. Focus here to move between cells with the keyboard and edit the grid.');
             deactivateCanvasKeyboardAccessibility();
         } else {
             canvas.removeAttribute('tabindex');
+            canvas.setAttribute('aria-label', 'Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.');
             deactivateCanvasKeyboardAccessibility();
             if (document.activeElement === canvas) {
                 canvas.blur();
