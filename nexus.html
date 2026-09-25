@@ -420,8 +420,8 @@
     <div class="stage">
         <canvas id="mainCanvas" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
     </div>
-    <p id="canvasKeyboardHelp" class="sr-only" hidden>In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1 for walls, 2 for start, 3 for end, Enter to apply the selected tool, and Delete or Backspace to clear the focused non-start/end cell.</p>
-    <div id="canvasStatus" class="sr-only" aria-live="polite" aria-atomic="true" hidden></div>
+    <p id="canvasKeyboardHelp" class="sr-only">In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1, 2, or 3 on the number row or numpad to switch tools, Enter to apply the selected tool, and Delete or Backspace to clear the focused non-start/end cell.</p>
+    <div id="canvasStatus" class="sr-only" aria-live="off" aria-atomic="true"></div>
 
     <!-- Controls: Sorting -->
     <div id="sortControls" class="controls">
@@ -502,23 +502,17 @@
     const canvasStatus = document.getElementById('canvasStatus');
     const ctx = canvas.getContext('2d');
     let W, H, dpr;
-    let canvasAnnouncementTimer = null;
+    let canvasAnnouncementToggle = false;
 
     function syncCanvasAccessibility(mode = currentMode) {
         if (mode === 'pathfind') {
             canvas.setAttribute('tabindex', '0');
             canvas.setAttribute('aria-describedby', 'canvasKeyboardHelp');
-            canvasKeyboardHelp.hidden = false;
-            canvasStatus.hidden = false;
+            canvasStatus.setAttribute('aria-live', 'polite');
         } else {
             canvas.removeAttribute('tabindex');
             canvas.removeAttribute('aria-describedby');
-            canvasKeyboardHelp.hidden = true;
-            canvasStatus.hidden = true;
-            if (canvasAnnouncementTimer) {
-                clearTimeout(canvasAnnouncementTimer);
-                canvasAnnouncementTimer = null;
-            }
+            canvasStatus.setAttribute('aria-live', 'off');
             canvasStatus.textContent = '';
             if (document.activeElement === canvas) {
                 canvas.blur();
@@ -879,10 +873,6 @@
     }
 
     function initPathfind() {
-        if (canvasAnnouncementTimer) {
-            clearTimeout(canvasAnnouncementTimer);
-            canvasAnnouncementTimer = null;
-        }
         gridCols = Math.floor(W / GRID_SIZE);
         gridRows = Math.floor(H / GRID_SIZE);
         grid = Array.from({ length: gridRows }, () => Array(gridCols).fill(CELL_EMPTY));
@@ -1026,20 +1016,16 @@
     function announceFocusedCell() {
         if (!canvasStatus || currentMode !== 'pathfind' || !focusedCell) return;
         const message = `Row ${focusedCell.r + 1}, column ${focusedCell.c + 1}, ${describeCell(focusedCell)} cell, ${pathTool} tool selected.`;
-        if (canvasAnnouncementTimer) {
-            clearTimeout(canvasAnnouncementTimer);
-        }
-        canvasStatus.textContent = '';
-        canvasAnnouncementTimer = setTimeout(() => {
-            canvasStatus.textContent = message;
-            canvasAnnouncementTimer = null;
-        }, 0);
+        canvasAnnouncementToggle = !canvasAnnouncementToggle;
+        canvasStatus.textContent = `${message}${canvasAnnouncementToggle ? '\u200B' : ''}`;
     }
 
     function handleCanvasKeydown(e) {
         if (currentMode !== 'pathfind' || isRunning) return;
 
-        switch (e.key) {
+        const shortcut = e.code || e.key;
+
+        switch (shortcut) {
             case 'ArrowUp':
                 e.preventDefault();
                 moveFocusedCell(-1, 0);
@@ -1064,16 +1050,19 @@
                     announceFocusedCell();
                 }
                 break;
+            case 'Digit1':
             case '1':
             case 'Numpad1':
                 e.preventDefault();
                 setPathTool('wall');
                 break;
+            case 'Digit2':
             case '2':
             case 'Numpad2':
                 e.preventDefault();
                 setPathTool('start');
                 break;
+            case 'Digit3':
             case '3':
             case 'Numpad3':
                 e.preventDefault();
