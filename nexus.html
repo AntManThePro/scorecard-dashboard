@@ -420,8 +420,8 @@
     <div class="stage">
         <canvas id="mainCanvas" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
     </div>
-    <p id="canvasKeyboardHelp" class="sr-only">In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1 for walls, 2 for start, 3 for end, Space or Enter to apply the selected tool, and Delete or Backspace to clear the focused cell.</p>
-    <div id="canvasStatus" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+    <p id="canvasKeyboardHelp" class="sr-only" hidden>In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1 for walls, 2 for start, 3 for end, Space or Enter to apply the selected tool, and Delete or Backspace to clear the focused cell.</p>
+    <div id="canvasStatus" class="sr-only" aria-live="polite" aria-atomic="true" hidden></div>
 
     <!-- Controls: Sorting -->
     <div id="sortControls" class="controls">
@@ -498,6 +498,7 @@
 
     // ── CANVAS SETUP ──
     const canvas = document.getElementById('mainCanvas');
+    const canvasKeyboardHelp = document.getElementById('canvasKeyboardHelp');
     const canvasStatus = document.getElementById('canvasStatus');
     const ctx = canvas.getContext('2d');
     let W, H, dpr;
@@ -507,10 +508,15 @@
             canvas.setAttribute('tabindex', '0');
             canvas.setAttribute('role', 'application');
             canvas.setAttribute('aria-describedby', 'canvasKeyboardHelp');
+            canvasKeyboardHelp.hidden = false;
+            canvasStatus.hidden = false;
         } else {
             canvas.removeAttribute('tabindex');
             canvas.removeAttribute('role');
             canvas.removeAttribute('aria-describedby');
+            canvasKeyboardHelp.hidden = true;
+            canvasStatus.hidden = true;
+            canvasStatus.textContent = '';
             if (document.activeElement === canvas) {
                 canvas.blur();
             }
