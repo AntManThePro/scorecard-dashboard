@@ -904,22 +904,31 @@
                 c: Math.max(0, Math.min(gridCols - 1, cell.c))
             };
         };
+        const findDistinctCell = (preferredCell, excludedCell) => {
+            if (preferredCell && (!excludedCell || preferredCell.r !== excludedCell.r || preferredCell.c !== excludedCell.c)) {
+                return preferredCell;
+            }
+            for (let r = 0; r < gridRows; r++) {
+                for (let c = 0; c < gridCols; c++) {
+                    if (!excludedCell || r !== excludedCell.r || c !== excludedCell.c) {
+                        return { r, c };
+                    }
+                }
+            }
+            return null;
+        };
 
         startCell = clampCell(savedState?.startCell, defaultStart);
-        endCell = clampCell(savedState?.endCell, defaultEnd);
-        if (startCell.r === endCell.r && startCell.c === endCell.c) {
-            endCell = { ...defaultEnd };
-            if (startCell.r === endCell.r && startCell.c === endCell.c) {
-                startCell = { ...defaultStart };
-            }
-        }
+        endCell = findDistinctCell(clampCell(savedState?.endCell, defaultEnd), startCell);
 
         grid[startCell.r][startCell.c] = CELL_START;
-        grid[endCell.r][endCell.c] = CELL_END;
+        if (endCell) {
+            grid[endCell.r][endCell.c] = CELL_END;
+        }
 
         if (savedState?.walls) {
             for (const wall of savedState.walls) {
-                if (wall.r >= 0 && wall.r < gridRows && wall.c >= 0 && wall.c < gridCols && !(wall.r === startCell.r && wall.c === startCell.c) && !(wall.r === endCell.r && wall.c === endCell.c)) {
+                if (wall.r >= 0 && wall.r < gridRows && wall.c >= 0 && wall.c < gridCols && !(wall.r === startCell.r && wall.c === startCell.c) && !(endCell && wall.r === endCell.r && wall.c === endCell.c)) {
                     grid[wall.r][wall.c] = CELL_WALL;
                 }
             }
