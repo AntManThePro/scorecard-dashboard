@@ -919,6 +919,17 @@
             drawGrid();
             return;
         }
+        if (gridRows * gridCols < 2) {
+            startCell = null;
+            endCell = null;
+            focusedCell = { r: 0, c: 0 };
+            stats.elements = 1;
+            updateStats();
+            syncPathToolButtons();
+            drawGrid();
+            announceFocusedCell();
+            return;
+        }
         const defaultStart = { r: Math.floor(gridRows / 2), c: Math.min(2, Math.max(0, gridCols - 1)) };
         const defaultEnd = { r: Math.floor(gridRows / 2), c: Math.max(0, gridCols - 3) };
         const clampCell = (cell, fallback) => {
@@ -1080,16 +1091,9 @@
     }
 
     function describeCell(cell) {
-        const stateMap = {
-            [CELL_EMPTY]: 'empty',
-            [CELL_WALL]: 'wall',
-            [CELL_START]: 'start',
-            [CELL_END]: 'end',
-            [CELL_VISITED]: 'visited',
-            [CELL_FRONTIER]: 'frontier',
-            [CELL_PATH]: 'path'
-        };
-        return stateMap[grid[cell.r][cell.c]] || 'unknown';
+        if (startCell && cell.r === startCell.r && cell.c === startCell.c) return 'start';
+        if (endCell && cell.r === endCell.r && cell.c === endCell.c) return 'end';
+        return grid[cell.r][cell.c] === CELL_WALL ? 'wall' : 'empty';
     }
 
     function announceFocusedCell(force = false) {
