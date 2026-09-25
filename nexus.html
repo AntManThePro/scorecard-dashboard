@@ -507,13 +507,11 @@
     function syncCanvasAccessibility(mode = currentMode) {
         if (mode === 'pathfind') {
             canvas.setAttribute('tabindex', '0');
-            canvas.setAttribute('role', 'application');
             canvas.setAttribute('aria-describedby', 'canvasKeyboardHelp');
             canvasKeyboardHelp.hidden = false;
             canvasStatus.hidden = false;
         } else {
             canvas.removeAttribute('tabindex');
-            canvas.removeAttribute('role');
             canvas.removeAttribute('aria-describedby');
             canvasKeyboardHelp.hidden = true;
             canvasStatus.hidden = true;
@@ -957,7 +955,6 @@
         }
         grid[cell.r][cell.c] = CELL_EMPTY;
         drawGrid();
-        announceFocusedCell();
     }
 
     function applyPathTool(cell, paintValue) {
@@ -989,7 +986,6 @@
             handleGridInput.paintValue = undefined;
         }
         drawGrid();
-        announceFocusedCell();
     }
 
     function stopDrawing() {
@@ -1061,24 +1057,31 @@
                 if (focusedCell) {
                     handleGridInput.paintValue = undefined;
                     applyPathTool(focusedCell);
+                    announceFocusedCell();
                 }
                 break;
             case '1':
+            case 'Numpad1':
                 e.preventDefault();
                 setPathTool('wall');
                 break;
             case '2':
+            case 'Numpad2':
                 e.preventDefault();
                 setPathTool('start');
                 break;
             case '3':
+            case 'Numpad3':
                 e.preventDefault();
                 setPathTool('end');
                 break;
             case 'Delete':
             case 'Backspace':
                 e.preventDefault();
-                if (focusedCell) clearFocusedCell(focusedCell);
+                if (focusedCell) {
+                    clearFocusedCell(focusedCell);
+                    announceFocusedCell();
+                }
                 break;
         }
     }
