@@ -420,8 +420,8 @@
     <div class="stage">
         <canvas id="mainCanvas" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
     </div>
-    <p id="canvasKeyboardHelp" class="sr-only">In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1, 2, or 3 on the number row or numpad to switch tools, Enter to apply the selected tool, and Delete or Backspace to clear the focused non-start/end cell.</p>
-    <div id="canvasStatus" class="sr-only" aria-live="off" aria-atomic="true"></div>
+    <p id="canvasKeyboardHelp" class="sr-only" aria-hidden="true">In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1, 2, or 3 on the number row or numpad to switch tools, Enter to apply the selected tool, and Delete or Backspace to clear the focused non-start/end cell.</p>
+    <div id="canvasStatus" class="sr-only" aria-live="off" aria-atomic="true" aria-hidden="true"></div>
 
     <!-- Controls: Sorting -->
     <div id="sortControls" class="controls">
@@ -508,10 +508,14 @@
         if (mode === 'pathfind') {
             canvas.setAttribute('tabindex', '0');
             canvas.setAttribute('aria-describedby', 'canvasKeyboardHelp');
+            canvasKeyboardHelp.setAttribute('aria-hidden', 'false');
+            canvasStatus.setAttribute('aria-hidden', 'false');
             canvasStatus.setAttribute('aria-live', 'polite');
         } else {
             canvas.removeAttribute('tabindex');
             canvas.removeAttribute('aria-describedby');
+            canvasKeyboardHelp.setAttribute('aria-hidden', 'true');
+            canvasStatus.setAttribute('aria-hidden', 'true');
             canvasStatus.setAttribute('aria-live', 'off');
             canvasStatus.textContent = '';
             if (document.activeElement === canvas) {
@@ -531,12 +535,13 @@
     }
 
     window.addEventListener('resize', () => {
+        const pathState = currentMode === 'pathfind' ? capturePathfindState() : null;
         if (isRunning && (currentMode === 'sort' || currentMode === 'pathfind')) {
             cancelAnimation();
         }
         resizeCanvas();
         if (currentMode === 'sort') initSort();
-        if (currentMode === 'pathfind') initPathfind();
+        if (currentMode === 'pathfind') initPathfind(pathState);
     });
 
     // ── STATE ──
@@ -872,15 +877,59 @@
         announceFocusedCell();
     }
 
-    function initPathfind() {
+    function capturePathfindState() {
+        if (!grid.length || !gridRows || !gridCols) return null;
+        const walls = [];
+        for (let r = 0; r < gridRows; r++) {
+            for (let c = 0; c < gridCols; c++) {
+                if (grid[r][c] === CELL_WALL) {
+                    walls.push({ r, c });
+                }
+            }
+        }
+        return {
+            walls,
+            startCell: startCell ? { ...startCell } : null,
+            endCell: endCell ? { ...endCell } : null,
+            focusedCell: focusedCell ? { ...focusedCell } : null
+        };
+    }
+
+    function initPathfind(savedState) {
         gridCols = Math.floor(W / GRID_SIZE);
         gridRows = Math.floor(H / GRID_SIZE);
         grid = Array.from({ length: gridRows }, () => Array(gridCols).fill(CELL_EMPTY));
-        startCell = { r: Math.floor(gridRows / 2), c: 2 };
-        endCell = { r: Math.floor(gridRows / 2), c: gridCols - 3 };
-        focusedCell = { ...startCell };
+        const defaultStart = { r: Math.floor(gridRows / 2), c: Math.min(2, Math.max(0, gridCols - 1)) };
+        const defaultEnd = { r: Math.floor(gridRows / 2), c: Math.max(0, gridCols - 3) };
+        const clampCell = (cell, fallback) => {
+            if (!cell) return { ...fallback };
+            return {
+                r: Math.max(0, Math.min(gridRows - 1, cell.r)),
+                c: Math.max(0, Math.min(gridCols - 1, cell.c))
+            };
+        };
+
+        startCell = clampCell(savedState?.startCell, defaultStart);
+        endCell = clampCell(savedState?.endCell, defaultEnd);
+        if (startCell.r === endCell.r && startCell.c === endCell.c) {
+            endCell = { ...defaultEnd };
+            if (startCell.r === endCell.r && startCell.c === endCell.c) {
+                startCell = { ...defaultStart };
+            }
+        }
+
         grid[startCell.r][startCell.c] = CELL_START;
         grid[endCell.r][endCell.c] = CELL_END;
+
+        if (savedState?.walls) {
+            for (const wall of savedState.walls) {
+                if (wall.r >= 0 && wall.r < gridRows && wall.c >= 0 && wall.c < gridCols && !(wall.r === startCell.r && wall.c === startCell.c) && !(wall.r === endCell.r && wall.c === endCell.c)) {
+                    grid[wall.r][wall.c] = CELL_WALL;
+                }
+            }
+        }
+
+        focusedCell = clampCell(savedState?.focusedCell || startCell, startCell);
         stats.elements = gridCols * gridRows;
         updateStats();
         syncPathToolButtons();
