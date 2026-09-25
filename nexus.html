@@ -159,6 +159,11 @@
             cursor: crosshair;
         }
 
+        .stage canvas:focus-visible {
+            outline: 2px solid var(--yellow);
+            outline-offset: -2px;
+        }
+
         @media (min-width: 768px) {
             .stage canvas { height: 500px; }
         }
@@ -198,6 +203,10 @@
             gap: 0.5rem;
             color: var(--text-dim);
             font-size: 0.75rem;
+        }
+
+        .speed-slider label {
+            color: inherit;
         }
 
         .speed-slider input[type="range"] {
@@ -331,6 +340,18 @@
             box-shadow: var(--glow-cyan);
         }
 
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
         /* ── PARTICLE PHYSICS ── */
         .physics-info {
             font-size: 0.7rem;
@@ -397,8 +418,9 @@
 
     <!-- Canvas Stage -->
     <div class="stage">
-        <canvas id="mainCanvas" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
+        <canvas id="mainCanvas" tabindex="0" role="application" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation." aria-describedby="canvasKeyboardHelp">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
     </div>
+    <p id="canvasKeyboardHelp" class="sr-only">In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1 for walls, 2 for start, 3 for end, Space or Enter to apply the selected tool, and Delete or Backspace to clear the focused cell.</p>
 
     <!-- Controls: Sorting -->
     <div id="sortControls" class="controls">
@@ -409,7 +431,7 @@
         <button class="ctrl-btn" data-algo="insertion">Insertion Sort</button>
         <button class="ctrl-btn" id="shuffleBtn">&#x27F3; Shuffle</button>
         <div class="speed-slider">
-            <span>Speed</span>
+            <label for="speedSlider">Sorting speed</label>
             <input type="range" id="speedSlider" min="1" max="100" value="50">
         </div>
     </div>
@@ -427,7 +449,7 @@
         <button class="ctrl-btn" data-path="bfs">BFS</button>
         <button class="ctrl-btn" data-path="dfs">DFS</button>
         <div class="speed-slider">
-            <span>Speed</span>
+            <label for="pathSpeedSlider">Pathfinding speed</label>
             <input type="range" id="pathSpeedSlider" min="1" max="100" value="50">
         </div>
     </div>
@@ -489,6 +511,9 @@
     }
 
     window.addEventListener('resize', () => {
+        if (isRunning && (currentMode === 'sort' || currentMode === 'pathfind')) {
+            cancelAnimation();
+        }
         resizeCanvas();
         if (currentMode === 'sort') initSort();
         if (currentMode === 'pathfind') initPathfind();
@@ -806,6 +831,7 @@
     let grid = [];
     let gridCols, gridRows;
     let startCell = null, endCell = null;
+    let focusedCell = null;
     let pathTool = 'wall';
     let isDrawing = false;
     const pathToolButtons = document.querySelectorAll('[data-tool]');
@@ -830,6 +856,7 @@
         grid = Array.from({ length: gridRows }, () => Array(gridCols).fill(CELL_EMPTY));
         startCell = { r: Math.floor(gridRows / 2), c: 2 };
         endCell = { r: Math.floor(gridRows / 2), c: gridCols - 3 };
+        focusedCell = { ...startCell };
         grid[startCell.r][startCell.c] = CELL_START;
         grid[endCell.r][endCell.c] = CELL_END;
         stats.elements = gridCols * gridRows;
@@ -861,6 +888,14 @@
                 ctx.fillRect(x + 1, y + 1, GRID_SIZE - 2, GRID_SIZE - 2);
             }
         }
+
+        if (focusedCell) {
+            const focusX = focusedCell.c * GRID_SIZE;
+            const focusY = focusedCell.r * GRID_SIZE;
+            ctx.strokeStyle = COLORS.yellow;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(focusX + 2, focusY + 2, GRID_SIZE - 4, GRID_SIZE - 4);
+        }
     }
 
     // Grid interaction
@@ -879,6 +914,23 @@
     function handleGridInput(e, paintValue) {
         if (currentMode !== 'pathfind' || isRunning) return;
         const cell = getGridCell(e);
+        if (!cell) return;
+        focusedCell = { ...cell };
+        applyPathTool(cell, paintValue);
+    }
+
+    function clearFocusedCell(cell) {
+        const currentValue = grid[cell.r][cell.c];
+        if (currentValue === CELL_START) {
+            startCell = null;
+        } else if (currentValue === CELL_END) {
+            endCell = null;
+        }
+        grid[cell.r][cell.c] = CELL_EMPTY;
+        drawGrid();
+    }
+
+    function applyPathTool(cell, paintValue) {
         if (!cell) return;
 
         if (pathTool === 'wall') {
@@ -909,6 +961,71 @@
         drawGrid();
     }
 
+    function stopDrawing() {
+        isDrawing = false;
+        handleGridInput.paintValue = undefined;
+    }
+
+    function moveFocusedCell(rowDelta, colDelta) {
+        if (!focusedCell) {
+            focusedCell = startCell ? { ...startCell } : { r: 0, c: 0 };
+        } else {
+            focusedCell = {
+                r: Math.max(0, Math.min(gridRows - 1, focusedCell.r + rowDelta)),
+                c: Math.max(0, Math.min(gridCols - 1, focusedCell.c + colDelta))
+            };
+        }
+        drawGrid();
+    }
+
+    function handleCanvasKeydown(e) {
+        if (currentMode !== 'pathfind' || isRunning) return;
+
+        switch (e.key) {
+            case 'ArrowUp':
+                e.preventDefault();
+                moveFocusedCell(-1, 0);
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                moveFocusedCell(1, 0);
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                moveFocusedCell(0, -1);
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                moveFocusedCell(0, 1);
+                break;
+            case ' ':
+            case 'Enter':
+                e.preventDefault();
+                if (focusedCell) {
+                    handleGridInput.paintValue = undefined;
+                    applyPathTool(focusedCell);
+                }
+                break;
+            case '1':
+                e.preventDefault();
+                setPathTool('wall');
+                break;
+            case '2':
+                e.preventDefault();
+                setPathTool('start');
+                break;
+            case '3':
+                e.preventDefault();
+                setPathTool('end');
+                break;
+            case 'Delete':
+            case 'Backspace':
+                e.preventDefault();
+                if (focusedCell) clearFocusedCell(focusedCell);
+                break;
+        }
+    }
+
     canvas.addEventListener('mousedown', (e) => {
         isDrawing = true;
         // Reset paintValue at the start of a new drag so the first cell decides it.
@@ -921,7 +1038,8 @@
             handleGridInput(e, handleGridInput.paintValue);
         }
     });
-    canvas.addEventListener('mouseup', () => { isDrawing = false; });
+    canvas.addEventListener('keydown', handleCanvasKeydown);
+    window.addEventListener('mouseup', stopDrawing);
 
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
@@ -934,7 +1052,9 @@
         e.preventDefault();
         if (isDrawing && pathTool === 'wall') handleGridInput(e, handleGridInput.paintValue);
     }, { passive: false });
-    canvas.addEventListener('touchend', () => { isDrawing = false; });
+    window.addEventListener('touchend', stopDrawing, { passive: true });
+    window.addEventListener('touchcancel', stopDrawing, { passive: true });
+    window.addEventListener('blur', stopDrawing);
 
     // Grid tool buttons
     document.querySelectorAll('[data-tool]').forEach(btn => {
