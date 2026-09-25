@@ -420,7 +420,7 @@
     <div class="stage">
         <canvas id="mainCanvas" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
     </div>
-    <p id="canvasKeyboardHelp" class="sr-only" hidden>In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1 for walls, 2 for start, 3 for end, Enter to apply the selected tool, and Delete or Backspace to clear the focused cell.</p>
+    <p id="canvasKeyboardHelp" class="sr-only" hidden>In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1 for walls, 2 for start, 3 for end, Enter to apply the selected tool, and Delete or Backspace to clear the focused non-start/end cell.</p>
     <div id="canvasStatus" class="sr-only" aria-live="polite" aria-atomic="true" hidden></div>
 
     <!-- Controls: Sorting -->
@@ -879,6 +879,10 @@
     }
 
     function initPathfind() {
+        if (canvasAnnouncementTimer) {
+            clearTimeout(canvasAnnouncementTimer);
+            canvasAnnouncementTimer = null;
+        }
         gridCols = Math.floor(W / GRID_SIZE);
         gridRows = Math.floor(H / GRID_SIZE);
         grid = Array.from({ length: gridRows }, () => Array(gridCols).fill(CELL_EMPTY));
