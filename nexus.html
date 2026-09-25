@@ -551,6 +551,7 @@
         resizeCanvas();
         if (currentMode === 'sort') initSort();
         if (currentMode === 'pathfind') initPathfind(pathState);
+        if (currentMode === 'physics') drawPhysicsScene();
     });
 
     // ── STATE ──
@@ -908,6 +909,16 @@
         gridCols = Math.floor(W / GRID_SIZE);
         gridRows = Math.floor(H / GRID_SIZE);
         grid = Array.from({ length: gridRows }, () => Array(gridCols).fill(CELL_EMPTY));
+        if (gridRows <= 0 || gridCols <= 0) {
+            startCell = null;
+            endCell = null;
+            focusedCell = null;
+            stats.elements = 0;
+            updateStats();
+            syncPathToolButtons();
+            drawGrid();
+            return;
+        }
         const defaultStart = { r: Math.floor(gridRows / 2), c: Math.min(2, Math.max(0, gridCols - 1)) };
         const defaultEnd = { r: Math.floor(gridRows / 2), c: Math.max(0, gridCols - 3) };
         const clampCell = (cell, fallback) => {
@@ -1007,6 +1018,7 @@
         if (!cell) return;
         focusedCell = { ...cell };
         applyPathTool(cell, paintValue);
+        announceFocusedCell();
     }
 
     function clearFocusedCell(cell) {
@@ -1489,9 +1501,6 @@
     function physicsLoop() {
         if (currentMode !== 'physics') return;
 
-        ctx.fillStyle = COLORS.card + 'dd';
-        ctx.fillRect(0, 0, W, H);
-
         stats.ops++;
         // Update & collisions
         for (let i = 0; i < particles.length; i++) {
@@ -1502,13 +1511,19 @@
         }
 
         // Draw
-        for (const p of particles) p.draw();
+        drawPhysicsScene();
 
         stats.elements = particles.length;
         stats.time = Math.round(performance.now() - physicsStartTime);
         updateStats();
 
         animationId = requestAnimationFrame(physicsLoop);
+    }
+
+    function drawPhysicsScene() {
+        ctx.fillStyle = COLORS.card + 'dd';
+        ctx.fillRect(0, 0, W, H);
+        for (const p of particles) p.draw();
     }
 
     function spawnParticlesAt(e) {
