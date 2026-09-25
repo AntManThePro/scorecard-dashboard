@@ -867,10 +867,10 @@
         });
     }
 
-    function setPathTool(tool) {
+    function setPathTool(tool, forceAnnouncement = false) {
         pathTool = tool;
         syncPathToolButtons();
-        announceFocusedCell();
+        announceFocusedCell(forceAnnouncement);
     }
 
     function capturePathfindState() {
@@ -1067,8 +1067,9 @@
         return stateMap[grid[cell.r][cell.c]] || 'unknown';
     }
 
-    function announceFocusedCell() {
+    function announceFocusedCell(force = false) {
         if (!canvasStatus || currentMode !== 'pathfind' || !focusedCell) return;
+        if (!force && document.activeElement !== canvas) return;
         const toolLabels = { wall: 'Draw Walls', start: 'Set Start', end: 'Set End' };
         const message = `Row ${focusedCell.r + 1}, column ${focusedCell.c + 1}, ${describeCell(focusedCell)} cell, ${toolLabels[pathTool] || pathTool} tool selected.`;
         canvasAnnouncementToggle = !canvasAnnouncementToggle;
@@ -1102,33 +1103,33 @@
                 if (focusedCell) {
                     handleGridInput.paintValue = undefined;
                     applyPathTool(focusedCell);
-                    announceFocusedCell();
+                    announceFocusedCell(true);
                 }
                 break;
             case 'Digit1':
             case '1':
             case 'Numpad1':
                 e.preventDefault();
-                setPathTool('wall');
+                setPathTool('wall', true);
                 break;
             case 'Digit2':
             case '2':
             case 'Numpad2':
                 e.preventDefault();
-                setPathTool('start');
+                setPathTool('start', true);
                 break;
             case 'Digit3':
             case '3':
             case 'Numpad3':
                 e.preventDefault();
-                setPathTool('end');
+                setPathTool('end', true);
                 break;
             case 'Delete':
             case 'Backspace':
                 e.preventDefault();
                 if (focusedCell) {
                     clearFocusedCell(focusedCell);
-                    announceFocusedCell();
+                    announceFocusedCell(true);
                 }
                 break;
         }
