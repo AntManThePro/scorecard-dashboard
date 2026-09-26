@@ -33,54 +33,54 @@ function showStatus(message, type = 'info') {
         if (type !== 'error') {
             statusMessage.innerHTML = '';
         }
-
-        // Escape untrusted text before rendering as HTML
-        function escapeHtml(value) {
-            const text = String(value ?? '');
-            return text
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#39;');
-        }
-
-        // Fetch all repository pages (GitHub API caps per_page at 100)
-        async function fetchAllRepositories() {
-            let page = 1;
-            const allRepos = [];
-
-            while (true) {
-                const reposResponse = await fetch(`https://api.github.com/user/repos?per_page=100&affiliation=owner&page=${page}`, {
-                    headers: {
-                        'Authorization': `token ${githubToken}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-
-                if (!reposResponse.ok) {
-                    const errorData = await reposResponse.json().catch(() => ({}));
-                    const errorMessage = errorData.message || 'Failed to load repositories';
-                    throw new Error(errorMessage);
-                }
-
-                const pageRepos = await reposResponse.json();
-                if (!Array.isArray(pageRepos) || pageRepos.length === 0) {
-                    break;
-                }
-
-                allRepos.push(...pageRepos);
-
-                if (pageRepos.length < 100) {
-                    break;
-                }
-
-                page++;
-            }
-
-            return allRepos;
-        }
     }, 5000);
+}
+
+// Escape untrusted text before rendering as HTML
+function escapeHtml(value) {
+    const text = String(value ?? '');
+    return text
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+// Fetch all repository pages (GitHub API caps per_page at 100)
+async function fetchAllRepositories() {
+    let page = 1;
+    const allRepos = [];
+
+    while (true) {
+        const reposResponse = await fetch(`https://api.github.com/user/repos?per_page=100&affiliation=owner&page=${page}`, {
+            headers: {
+                'Authorization': `token ${githubToken}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+
+        if (!reposResponse.ok) {
+            const errorData = await reposResponse.json().catch(() => ({}));
+            const errorMessage = errorData.message || 'Failed to load repositories';
+            throw new Error(errorMessage);
+        }
+
+        const pageRepos = await reposResponse.json();
+        if (!Array.isArray(pageRepos) || pageRepos.length === 0) {
+            break;
+        }
+
+        allRepos.push(...pageRepos);
+
+        if (pageRepos.length < 100) {
+            break;
+        }
+
+        page++;
+    }
+
+    return allRepos;
 }
 
 // Load repositories from GitHub API
