@@ -159,6 +159,11 @@
             cursor: crosshair;
         }
 
+        .stage canvas:focus-visible {
+            outline: 2px solid var(--yellow);
+            outline-offset: -2px;
+        }
+
         @media (min-width: 768px) {
             .stage canvas { height: 500px; }
         }
@@ -198,6 +203,10 @@
             gap: 0.5rem;
             color: var(--text-dim);
             font-size: 0.75rem;
+        }
+
+        .speed-slider label {
+            color: inherit;
         }
 
         .speed-slider input[type="range"] {
@@ -331,6 +340,18 @@
             box-shadow: var(--glow-cyan);
         }
 
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
         /* ── PARTICLE PHYSICS ── */
         .physics-info {
             font-size: 0.7rem;
@@ -409,7 +430,7 @@
         <button class="ctrl-btn" data-algo="insertion">Insertion Sort</button>
         <button class="ctrl-btn" id="shuffleBtn">&#x27F3; Shuffle</button>
         <div class="speed-slider">
-            <label for="speedSlider">Speed</label>
+            <label for="speedSlider">Sorting speed</label>
             <input type="range" id="speedSlider" min="1" max="100" value="50">
         </div>
     </div>
@@ -427,9 +448,11 @@
         <button class="ctrl-btn" data-path="bfs">BFS</button>
         <button class="ctrl-btn" data-path="dfs">DFS</button>
         <div class="speed-slider">
-            <label for="pathSpeedSlider">Speed</label>
+            <label for="pathSpeedSlider">Pathfinding speed</label>
             <input type="range" id="pathSpeedSlider" min="1" max="100" value="50">
         </div>
+        <p id="canvasKeyboardHelp" class="sr-only" aria-hidden="true">In pathfinding mode, use the arrow keys to move the focused grid cell. Press 1, 2, or 3 on the number row or numpad to switch tools, Enter to apply the selected tool, and Delete or Backspace to clear the focused non-start/end cell.</p>
+        <div id="canvasStatus" class="sr-only" aria-live="off" aria-atomic="true" aria-hidden="true"></div>
     </div>
 
     <!-- Controls: Physics -->
@@ -475,8 +498,43 @@
 
     // ── CANVAS SETUP ──
     const canvas = document.getElementById('mainCanvas');
+    const canvasKeyboardHelp = document.getElementById('canvasKeyboardHelp');
+    const canvasStatus = document.getElementById('canvasStatus');
     const ctx = canvas.getContext('2d');
     let W, H, dpr;
+    let canvasAnnouncementToggle = false;
+
+    function activateCanvasKeyboardAccessibility() {
+        if (currentMode !== 'pathfind') return;
+        canvas.setAttribute('aria-describedby', 'canvasKeyboardHelp');
+        canvasKeyboardHelp.setAttribute('aria-hidden', 'false');
+        canvasStatus.setAttribute('aria-hidden', 'false');
+        canvasStatus.setAttribute('aria-live', 'polite');
+        announceFocusedCell(true);
+    }
+
+    function deactivateCanvasKeyboardAccessibility() {
+        canvas.removeAttribute('aria-describedby');
+        canvasKeyboardHelp.setAttribute('aria-hidden', 'true');
+        canvasStatus.setAttribute('aria-hidden', 'true');
+        canvasStatus.setAttribute('aria-live', 'off');
+        canvasStatus.textContent = '';
+    }
+
+    function syncCanvasAccessibility(mode = currentMode) {
+        if (mode === 'pathfind') {
+            canvas.setAttribute('tabindex', '0');
+            canvas.setAttribute('aria-label', 'Interactive pathfinding grid canvas. Focus here to move between cells with the keyboard and edit the grid.');
+            deactivateCanvasKeyboardAccessibility();
+        } else {
+            canvas.removeAttribute('tabindex');
+            canvas.setAttribute('aria-label', 'Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.');
+            deactivateCanvasKeyboardAccessibility();
+            if (document.activeElement === canvas) {
+                canvas.blur();
+            }
+        }
+    }
 
     function resizeCanvas() {
         dpr = window.devicePixelRatio || 1;
@@ -489,10 +547,12 @@
     }
 
     window.addEventListener('resize', () => {
+        const pathState = currentMode === 'pathfind' ? capturePathfindState() : null;
         if (isRunning) cancelAnimation();
         resizeCanvas();
         if (currentMode === 'sort') initSort();
-        if (currentMode === 'pathfind') initPathfind();
+        if (currentMode === 'pathfind') initPathfind(pathState);
+        if (currentMode === 'physics') drawPhysicsScene();
     });
 
     // ── STATE ──
@@ -541,7 +601,9 @@
 
     function switchMode(mode) {
         cancelAnimation();
+        clearDrawingState();
         resetStats();
+        syncCanvasAccessibility(mode);
         sortControls.style.display = mode === 'sort' ? 'flex' : 'none';
         pathControls.style.display = mode === 'pathfind' ? 'flex' : 'none';
         physicsControls.style.display = mode === 'physics' ? 'flex' : 'none';
@@ -821,7 +883,7 @@
     let grid = [];
     let gridCols, gridRows;
     let startCell = null, endCell = null;
-    let keyboardCell = null;
+    let focusedCell = null;
     let pathTool = 'wall';
     let isDrawing = false;
     const pathToolButtons = document.querySelectorAll('[data-tool]');
@@ -835,24 +897,99 @@
         });
     }
 
-    function setPathTool(tool) {
+    function setPathTool(tool, forceAnnouncement = false) {
         pathTool = tool;
         syncPathToolButtons();
+        announceFocusedCell(forceAnnouncement);
     }
 
-    function initPathfind() {
+    function capturePathfindState() {
+        if (!grid.length || !gridRows || !gridCols) return null;
+        const walls = [];
+        for (let r = 0; r < gridRows; r++) {
+            for (let c = 0; c < gridCols; c++) {
+                if (grid[r][c] === CELL_WALL) {
+                    walls.push({ r, c });
+                }
+            }
+        }
+        return {
+            walls,
+            startCell: startCell ? { ...startCell } : null,
+            endCell: endCell ? { ...endCell } : null,
+            focusedCell: focusedCell ? { ...focusedCell } : null
+        };
+    }
+
+    function initPathfind(savedState) {
         gridCols = Math.floor(W / GRID_SIZE);
         gridRows = Math.floor(H / GRID_SIZE);
         grid = Array.from({ length: gridRows }, () => Array(gridCols).fill(CELL_EMPTY));
-        startCell = { r: Math.floor(gridRows / 2), c: 2 };
-        endCell = { r: Math.floor(gridRows / 2), c: gridCols - 3 };
-        keyboardCell = { r: startCell.r, c: startCell.c };
+        if (gridRows <= 0 || gridCols <= 0) {
+            startCell = null;
+            endCell = null;
+            focusedCell = null;
+            stats.elements = 0;
+            updateStats();
+            syncPathToolButtons();
+            drawGrid();
+            return;
+        }
+        if (gridRows * gridCols < 2) {
+            startCell = null;
+            endCell = null;
+            focusedCell = { r: 0, c: 0 };
+            stats.elements = 1;
+            updateStats();
+            syncPathToolButtons();
+            drawGrid();
+            announceFocusedCell();
+            return;
+        }
+        const defaultStart = { r: Math.floor(gridRows / 2), c: Math.min(2, Math.max(0, gridCols - 1)) };
+        const defaultEnd = { r: Math.floor(gridRows / 2), c: Math.max(0, gridCols - 3) };
+        const clampCell = (cell, fallback) => {
+            if (!cell) return { ...fallback };
+            return {
+                r: Math.max(0, Math.min(gridRows - 1, cell.r)),
+                c: Math.max(0, Math.min(gridCols - 1, cell.c))
+            };
+        };
+        const findDistinctCell = (preferredCell, excludedCell) => {
+            if (preferredCell && (!excludedCell || preferredCell.r !== excludedCell.r || preferredCell.c !== excludedCell.c)) {
+                return preferredCell;
+            }
+            for (let r = 0; r < gridRows; r++) {
+                for (let c = 0; c < gridCols; c++) {
+                    if (!excludedCell || r !== excludedCell.r || c !== excludedCell.c) {
+                        return { r, c };
+                    }
+                }
+            }
+            return null;
+        };
+
+        startCell = clampCell(savedState?.startCell, defaultStart);
+        endCell = findDistinctCell(clampCell(savedState?.endCell, defaultEnd), startCell);
         grid[startCell.r][startCell.c] = CELL_START;
-        grid[endCell.r][endCell.c] = CELL_END;
+        if (endCell) {
+            grid[endCell.r][endCell.c] = CELL_END;
+        }
+
+        if (savedState?.walls) {
+            for (const wall of savedState.walls) {
+                if (wall.r >= 0 && wall.r < gridRows && wall.c >= 0 && wall.c < gridCols && !(wall.r === startCell.r && wall.c === startCell.c) && !(endCell && wall.r === endCell.r && wall.c === endCell.c)) {
+                    grid[wall.r][wall.c] = CELL_WALL;
+                }
+            }
+        }
+
+        focusedCell = clampCell(savedState?.focusedCell || startCell, startCell);
         stats.elements = gridCols * gridRows;
         updateStats();
         syncPathToolButtons();
         drawGrid();
+        announceFocusedCell();
     }
 
     function drawGrid() {
@@ -879,47 +1016,13 @@
             }
         }
 
-        if (currentMode === 'pathfind' && document.activeElement === canvas && keyboardCell) {
-            ctx.lineWidth = 2;
+        if (currentMode === 'pathfind' && focusedCell) {
+            const focusX = focusedCell.c * GRID_SIZE;
+            const focusY = focusedCell.r * GRID_SIZE;
             ctx.strokeStyle = COLORS.yellow;
-            ctx.strokeRect(
-                keyboardCell.c * GRID_SIZE + 2,
-                keyboardCell.r * GRID_SIZE + 2,
-                GRID_SIZE - 4,
-                GRID_SIZE - 4
-            );
+            ctx.lineWidth = 2;
+            ctx.strokeRect(focusX + 2, focusY + 2, GRID_SIZE - 4, GRID_SIZE - 4);
         }
-    }
-
-    function applyPathToolAtCell(cell, paintValue) {
-        if (pathTool === 'wall') {
-            if (grid[cell.r][cell.c] !== CELL_START && grid[cell.r][cell.c] !== CELL_END) {
-                if (typeof paintValue === 'undefined') {
-                    const newValue = grid[cell.r][cell.c] === CELL_WALL ? CELL_EMPTY : CELL_WALL;
-                    grid[cell.r][cell.c] = newValue;
-                    return newValue;
-                }
-                grid[cell.r][cell.c] = paintValue;
-                return paintValue;
-            }
-            return paintValue;
-        }
-
-        if (pathTool === 'start') {
-            if (endCell && cell.r === endCell.r && cell.c === endCell.c) return paintValue;
-            if (startCell) grid[startCell.r][startCell.c] = CELL_EMPTY;
-            startCell = cell;
-            grid[cell.r][cell.c] = CELL_START;
-            return undefined;
-        }
-
-        if (pathTool === 'end') {
-            if (startCell && cell.r === startCell.r && cell.c === startCell.c) return paintValue;
-            if (endCell) grid[endCell.r][endCell.c] = CELL_EMPTY;
-            endCell = cell;
-            grid[cell.r][cell.c] = CELL_END;
-        }
-        return undefined;
     }
 
     // Grid interaction
@@ -939,7 +1042,22 @@
         if (currentMode !== 'pathfind' || isRunning) return;
         const cell = getGridCell(e);
         if (!cell) return;
-        keyboardCell = { r: cell.r, c: cell.c };
+        focusedCell = { ...cell };
+        applyPathTool(cell, paintValue);
+        announceFocusedCell();
+    }
+
+    function clearFocusedCell(cell) {
+        const currentValue = grid[cell.r][cell.c];
+        if (currentValue === CELL_START || currentValue === CELL_END) {
+            return;
+        }
+        grid[cell.r][cell.c] = CELL_EMPTY;
+        drawGrid();
+    }
+
+    function applyPathTool(cell, paintValue) {
+        if (!cell) return;
 
         handleGridInput.paintValue = applyPathToolAtCell(cell, paintValue);
         drawGrid();
@@ -950,11 +1068,101 @@
         handleGridInput.paintValue = undefined;
     }
 
+    function moveFocusedCell(rowDelta, colDelta) {
+        if (gridRows <= 0 || gridCols <= 0) return;
+        if (!focusedCell) {
+            focusedCell = startCell ? { ...startCell } : { r: 0, c: 0 };
+        } else {
+            focusedCell = {
+                r: Math.max(0, Math.min(gridRows - 1, focusedCell.r + rowDelta)),
+                c: Math.max(0, Math.min(gridCols - 1, focusedCell.c + colDelta))
+            };
+        }
+        drawGrid();
+        announceFocusedCell();
+    }
+
+    function describeCell(cell) {
+        if (startCell && cell.r === startCell.r && cell.c === startCell.c) return 'start';
+        if (endCell && cell.r === endCell.r && cell.c === endCell.c) return 'end';
+        return grid[cell.r][cell.c] === CELL_WALL ? 'wall' : 'empty';
+    }
+
+    function announceFocusedCell(force = false) {
+        if (!canvasStatus || currentMode !== 'pathfind' || !focusedCell) return;
+        if (!force && document.activeElement !== canvas) return;
+        const toolLabels = { wall: 'Draw Walls', start: 'Set Start', end: 'Set End' };
+        const message = `Row ${focusedCell.r + 1}, column ${focusedCell.c + 1}, ${describeCell(focusedCell)} cell, ${toolLabels[pathTool] || pathTool} tool selected.`;
+        canvasAnnouncementToggle = !canvasAnnouncementToggle;
+        canvasStatus.textContent = `${message}${canvasAnnouncementToggle ? '\u200B' : ''}`;
+    }
+
+    function handleCanvasKeydown(e) {
+        if (currentMode !== 'pathfind' || isRunning) return;
+
+        const shortcut = e.code || e.key;
+
+        switch (shortcut) {
+            case 'ArrowUp':
+                e.preventDefault();
+                moveFocusedCell(-1, 0);
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                moveFocusedCell(1, 0);
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                moveFocusedCell(0, -1);
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                moveFocusedCell(0, 1);
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (focusedCell) {
+                    handleGridInput.paintValue = undefined;
+                    applyPathTool(focusedCell);
+                    announceFocusedCell(true);
+                }
+                break;
+            case 'Digit1':
+            case '1':
+            case 'Numpad1':
+                e.preventDefault();
+                setPathTool('wall', true);
+                break;
+            case 'Digit2':
+            case '2':
+            case 'Numpad2':
+                e.preventDefault();
+                setPathTool('start', true);
+                break;
+            case 'Digit3':
+            case '3':
+            case 'Numpad3':
+                e.preventDefault();
+                setPathTool('end', true);
+                break;
+            case 'Delete':
+            case 'Backspace':
+                e.preventDefault();
+                if (focusedCell) {
+                    clearFocusedCell(focusedCell);
+                    announceFocusedCell(true);
+                }
+                break;
+        }
+    }
+
     canvas.addEventListener('mousedown', (e) => {
-        isDrawing = true;
-        // Reset paintValue at the start of a new drag so the first cell decides it.
-        handleGridInput.paintValue = undefined;
-        handleGridInput(e);
+        if (currentMode === 'pathfind') {
+            isDrawing = true;
+            // Reset paintValue at the start of a new drag so the first cell decides it.
+            handleGridInput.paintValue = undefined;
+            handleGridInput(e);
+        }
         if (currentMode === 'physics') spawnParticlesAt(e);
     });
     canvas.addEventListener('mousemove', (e) => {
@@ -962,62 +1170,27 @@
             handleGridInput(e, handleGridInput.paintValue);
         }
     });
+    canvas.addEventListener('focus', activateCanvasKeyboardAccessibility);
+    canvas.addEventListener('blur', deactivateCanvasKeyboardAccessibility);
+    canvas.addEventListener('keydown', handleCanvasKeydown);
     window.addEventListener('mouseup', clearDrawingState);
 
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        isDrawing = true;
-        handleGridInput.paintValue = undefined;
-        handleGridInput(e);
+        if (currentMode === 'pathfind') {
+            isDrawing = true;
+            handleGridInput.paintValue = undefined;
+            handleGridInput(e);
+        }
         if (currentMode === 'physics') spawnParticlesAt(e);
     }, { passive: false });
     canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();
         if (isDrawing && pathTool === 'wall') handleGridInput(e, handleGridInput.paintValue);
     }, { passive: false });
-    window.addEventListener('touchend', clearDrawingState);
-    window.addEventListener('touchcancel', clearDrawingState);
+    window.addEventListener('touchend', clearDrawingState, { passive: true });
+    window.addEventListener('touchcancel', clearDrawingState, { passive: true });
     window.addEventListener('blur', clearDrawingState);
-
-    canvas.addEventListener('keydown', (e) => {
-        if (currentMode !== 'pathfind' || isRunning || !keyboardCell) return;
-
-        let didChange = false;
-        if (e.key === 'ArrowUp' && keyboardCell.r > 0) {
-            keyboardCell.r--;
-            didChange = true;
-        } else if (e.key === 'ArrowDown' && keyboardCell.r < gridRows - 1) {
-            keyboardCell.r++;
-            didChange = true;
-        } else if (e.key === 'ArrowLeft' && keyboardCell.c > 0) {
-            keyboardCell.c--;
-            didChange = true;
-        } else if (e.key === 'ArrowRight' && keyboardCell.c < gridCols - 1) {
-            keyboardCell.c++;
-            didChange = true;
-        } else if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault();
-            applyPathToolAtCell(keyboardCell);
-            didChange = true;
-        } else if (e.key === 'w' || e.key === 'W') {
-            setPathTool('wall');
-            didChange = true;
-        } else if (e.key === 's' || e.key === 'S') {
-            setPathTool('start');
-            didChange = true;
-        } else if (e.key === 'e' || e.key === 'E') {
-            setPathTool('end');
-            didChange = true;
-        } else if (e.key === 'c' || e.key === 'C') {
-            initPathfind();
-            didChange = true;
-        }
-
-        if (didChange) {
-            e.preventDefault();
-            drawGrid();
-        }
-    });
 
     // Grid tool buttons
     document.querySelectorAll('[data-tool]').forEach(btn => {
@@ -1332,9 +1505,6 @@
     function physicsLoop() {
         if (currentMode !== 'physics') return;
 
-        ctx.fillStyle = COLORS.card + 'dd';
-        ctx.fillRect(0, 0, W, H);
-
         stats.ops++;
         // Update & collisions
         for (let i = 0; i < particles.length; i++) {
@@ -1345,13 +1515,19 @@
         }
 
         // Draw
-        for (const p of particles) p.draw();
+        drawPhysicsScene();
 
         stats.elements = particles.length;
         stats.time = Math.round(performance.now() - physicsStartTime);
         updateStats();
 
         animationId = requestAnimationFrame(physicsLoop);
+    }
+
+    function drawPhysicsScene() {
+        ctx.fillStyle = COLORS.card + 'dd';
+        ctx.fillRect(0, 0, W, H);
+        for (const p of particles) p.draw();
     }
 
     function spawnParticlesAt(e) {
@@ -1394,6 +1570,7 @@
 
     // ── INIT ──
     resizeCanvas();
+    syncCanvasAccessibility();
     initSort();
 
 })();
