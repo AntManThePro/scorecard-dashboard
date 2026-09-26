@@ -397,7 +397,7 @@
 
     <!-- Canvas Stage -->
     <div class="stage">
-        <canvas id="mainCanvas" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
+        <canvas id="mainCanvas" tabindex="0" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
     </div>
 
     <!-- Controls: Sorting -->
@@ -409,7 +409,7 @@
         <button class="ctrl-btn" data-algo="insertion">Insertion Sort</button>
         <button class="ctrl-btn" id="shuffleBtn">&#x27F3; Shuffle</button>
         <div class="speed-slider">
-            <span>Speed</span>
+            <label for="speedSlider">Speed</label>
             <input type="range" id="speedSlider" min="1" max="100" value="50">
         </div>
     </div>
@@ -427,7 +427,7 @@
         <button class="ctrl-btn" data-path="bfs">BFS</button>
         <button class="ctrl-btn" data-path="dfs">DFS</button>
         <div class="speed-slider">
-            <span>Speed</span>
+            <label for="pathSpeedSlider">Speed</label>
             <input type="range" id="pathSpeedSlider" min="1" max="100" value="50">
         </div>
     </div>
@@ -807,6 +807,7 @@
     let grid = [];
     let gridCols, gridRows;
     let startCell = null, endCell = null;
+    let keyboardCell = null;
     let pathTool = 'wall';
     let isDrawing = false;
     const pathToolButtons = document.querySelectorAll('[data-tool]');
@@ -831,6 +832,7 @@
         grid = Array.from({ length: gridRows }, () => Array(gridCols).fill(CELL_EMPTY));
         startCell = { r: Math.floor(gridRows / 2), c: 2 };
         endCell = { r: Math.floor(gridRows / 2), c: gridCols - 3 };
+        keyboardCell = { r: startCell.r, c: startCell.c };
         grid[startCell.r][startCell.c] = CELL_START;
         grid[endCell.r][endCell.c] = CELL_END;
         stats.elements = gridCols * gridRows;
@@ -862,6 +864,48 @@
                 ctx.fillRect(x + 1, y + 1, GRID_SIZE - 2, GRID_SIZE - 2);
             }
         }
+
+        if (currentMode === 'pathfind' && document.activeElement === canvas && keyboardCell) {
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = COLORS.yellow;
+            ctx.strokeRect(
+                keyboardCell.c * GRID_SIZE + 2,
+                keyboardCell.r * GRID_SIZE + 2,
+                GRID_SIZE - 4,
+                GRID_SIZE - 4
+            );
+        }
+    }
+
+    function applyPathToolAtCell(cell, paintValue) {
+        if (pathTool === 'wall') {
+            if (grid[cell.r][cell.c] !== CELL_START && grid[cell.r][cell.c] !== CELL_END) {
+                if (typeof paintValue === 'undefined') {
+                    const newValue = grid[cell.r][cell.c] === CELL_WALL ? CELL_EMPTY : CELL_WALL;
+                    grid[cell.r][cell.c] = newValue;
+                    return newValue;
+                }
+                grid[cell.r][cell.c] = paintValue;
+                return paintValue;
+            }
+            return paintValue;
+        }
+
+        if (pathTool === 'start') {
+            if (endCell && cell.r === endCell.r && cell.c === endCell.c) return paintValue;
+            if (startCell) grid[startCell.r][startCell.c] = CELL_EMPTY;
+            startCell = cell;
+            grid[cell.r][cell.c] = CELL_START;
+            return undefined;
+        }
+
+        if (pathTool === 'end') {
+            if (startCell && cell.r === startCell.r && cell.c === startCell.c) return paintValue;
+            if (endCell) grid[endCell.r][endCell.c] = CELL_EMPTY;
+            endCell = cell;
+            grid[cell.r][cell.c] = CELL_END;
+        }
+        return undefined;
     }
 
     // Grid interaction
@@ -881,33 +925,15 @@
         if (currentMode !== 'pathfind' || isRunning) return;
         const cell = getGridCell(e);
         if (!cell) return;
+        keyboardCell = { r: cell.r, c: cell.c };
 
-        if (pathTool === 'wall') {
-            if (grid[cell.r][cell.c] !== CELL_START && grid[cell.r][cell.c] !== CELL_END) {
-                // Determine the paint value on the first event of a drag (or on click),
-                // then reuse it for subsequent drag events to avoid re-toggling.
-                if (typeof paintValue === 'undefined') {
-                    const newValue = grid[cell.r][cell.c] === CELL_WALL ? CELL_EMPTY : CELL_WALL;
-                    grid[cell.r][cell.c] = newValue;
-                    handleGridInput.paintValue = newValue;
-                } else {
-                    grid[cell.r][cell.c] = paintValue;
-                }
-            }
-        } else if (pathTool === 'start') {
-            if (endCell && cell.r === endCell.r && cell.c === endCell.c) return;
-            if (startCell) grid[startCell.r][startCell.c] = CELL_EMPTY;
-            startCell = cell;
-            grid[cell.r][cell.c] = CELL_START;
-            handleGridInput.paintValue = undefined;
-        } else if (pathTool === 'end') {
-            if (startCell && cell.r === startCell.r && cell.c === startCell.c) return;
-            if (endCell) grid[endCell.r][endCell.c] = CELL_EMPTY;
-            endCell = cell;
-            grid[cell.r][cell.c] = CELL_END;
-            handleGridInput.paintValue = undefined;
-        }
+        handleGridInput.paintValue = applyPathToolAtCell(cell, paintValue);
         drawGrid();
+    }
+
+    function clearDrawingState() {
+        isDrawing = false;
+        handleGridInput.paintValue = undefined;
     }
 
     canvas.addEventListener('mousedown', (e) => {
@@ -922,7 +948,7 @@
             handleGridInput(e, handleGridInput.paintValue);
         }
     });
-window.addEventListener('mouseup', () => { isDrawing = false; });
+    window.addEventListener('mouseup', clearDrawingState);
 
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
@@ -935,7 +961,49 @@ window.addEventListener('mouseup', () => { isDrawing = false; });
         e.preventDefault();
         if (isDrawing && pathTool === 'wall') handleGridInput(e, handleGridInput.paintValue);
     }, { passive: false });
-    canvas.addEventListener('touchend', () => { isDrawing = false; });
+    window.addEventListener('touchend', clearDrawingState);
+    window.addEventListener('touchcancel', clearDrawingState);
+    window.addEventListener('blur', clearDrawingState);
+
+    canvas.addEventListener('keydown', (e) => {
+        if (currentMode !== 'pathfind' || isRunning || !keyboardCell) return;
+
+        let didChange = false;
+        if (e.key === 'ArrowUp' && keyboardCell.r > 0) {
+            keyboardCell.r--;
+            didChange = true;
+        } else if (e.key === 'ArrowDown' && keyboardCell.r < gridRows - 1) {
+            keyboardCell.r++;
+            didChange = true;
+        } else if (e.key === 'ArrowLeft' && keyboardCell.c > 0) {
+            keyboardCell.c--;
+            didChange = true;
+        } else if (e.key === 'ArrowRight' && keyboardCell.c < gridCols - 1) {
+            keyboardCell.c++;
+            didChange = true;
+        } else if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            applyPathToolAtCell(keyboardCell);
+            didChange = true;
+        } else if (e.key === 'w' || e.key === 'W') {
+            setPathTool('wall');
+            didChange = true;
+        } else if (e.key === 's' || e.key === 'S') {
+            setPathTool('start');
+            didChange = true;
+        } else if (e.key === 'e' || e.key === 'E') {
+            setPathTool('end');
+            didChange = true;
+        } else if (e.key === 'c' || e.key === 'C') {
+            initPathfind();
+            didChange = true;
+        }
+
+        if (didChange) {
+            e.preventDefault();
+            drawGrid();
+        }
+    });
 
     // Grid tool buttons
     document.querySelectorAll('[data-tool]').forEach(btn => {
