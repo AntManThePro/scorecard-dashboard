@@ -489,6 +489,7 @@
     }
 
     window.addEventListener('resize', () => {
+        if (isRunning) cancelAnimation();
         resizeCanvas();
         if (currentMode === 'sort') initSort();
         if (currentMode === 'pathfind') initPathfind();
