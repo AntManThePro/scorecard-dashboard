@@ -654,13 +654,15 @@
             await sleep(getSpeed());
         }
 
-        // Mark all sorted
-        sortHighlight.comparing = [];
-        sortHighlight.swapping = [];
-        sortHighlight.sorted = Array.from({ length: sortArray.length }, (_, i) => i);
-        stats.time = Math.round(performance.now() - startTime);
-        updateStats();
-        drawSort();
+        // Mark all sorted only when the run completed normally.
+        if (isRunning) {
+            sortHighlight.comparing = [];
+            sortHighlight.swapping = [];
+            sortHighlight.sorted = Array.from({ length: sortArray.length }, (_, i) => i);
+            stats.time = Math.round(performance.now() - startTime);
+            updateStats();
+            drawSort();
+        }
         isRunning = false;
     }
 
