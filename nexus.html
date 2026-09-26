@@ -418,7 +418,7 @@
 
     <!-- Canvas Stage -->
     <div class="stage">
-        <canvas id="mainCanvas" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
+        <canvas id="mainCanvas" tabindex="0" aria-label="Interactive algorithm visualization canvas. Use the mode selector and controls below to change the displayed simulation.">Interactive algorithm visualization canvas showing sorting, pathfinding, or particle physics simulations. Use the mode selector and controls below to interact with the visualization.</canvas>
     </div>
 
     <!-- Controls: Sorting -->
@@ -510,6 +510,7 @@
         canvasKeyboardHelp.setAttribute('aria-hidden', 'false');
         canvasStatus.setAttribute('aria-hidden', 'false');
         canvasStatus.setAttribute('aria-live', 'polite');
+        announceFocusedCell(true);
     }
 
     function deactivateCanvasKeyboardAccessibility() {
@@ -547,9 +548,7 @@
 
     window.addEventListener('resize', () => {
         const pathState = currentMode === 'pathfind' ? capturePathfindState() : null;
-        if (isRunning && (currentMode === 'sort' || currentMode === 'pathfind')) {
-            cancelAnimation();
-        }
+        if (isRunning) cancelAnimation();
         resizeCanvas();
         if (currentMode === 'sort') initSort();
         if (currentMode === 'pathfind') initPathfind(pathState);
@@ -601,6 +600,7 @@
 
     function switchMode(mode) {
         cancelAnimation();
+        clearDrawingState();
         resetStats();
         syncCanvasAccessibility(mode);
         sortControls.style.display = mode === 'sort' ? 'flex' : 'none';
@@ -716,13 +716,15 @@
             await sleep(getSpeed());
         }
 
-        // Mark all sorted
-        sortHighlight.comparing = [];
-        sortHighlight.swapping = [];
-        sortHighlight.sorted = Array.from({ length: sortArray.length }, (_, i) => i);
-        stats.time = Math.round(performance.now() - startTime);
-        updateStats();
-        drawSort();
+        // Mark all sorted only when the run completed normally.
+        if (isRunning) {
+            sortHighlight.comparing = [];
+            sortHighlight.swapping = [];
+            sortHighlight.sorted = Array.from({ length: sortArray.length }, (_, i) => i);
+            stats.time = Math.round(performance.now() - startTime);
+            updateStats();
+            drawSort();
+        }
         isRunning = false;
     }
 
@@ -957,7 +959,6 @@
 
         startCell = clampCell(savedState?.startCell, defaultStart);
         endCell = findDistinctCell(clampCell(savedState?.endCell, defaultEnd), startCell);
-
         grid[startCell.r][startCell.c] = CELL_START;
         if (endCell) {
             grid[endCell.r][endCell.c] = CELL_END;
@@ -1046,40 +1047,17 @@
     function applyPathTool(cell, paintValue) {
         if (!cell) return;
 
-        if (pathTool === 'wall') {
-            if (grid[cell.r][cell.c] !== CELL_START && grid[cell.r][cell.c] !== CELL_END) {
-                // Determine the paint value on the first event of a drag (or on click),
-                // then reuse it for subsequent drag events to avoid re-toggling.
-                if (typeof paintValue === 'undefined') {
-                    const newValue = grid[cell.r][cell.c] === CELL_WALL ? CELL_EMPTY : CELL_WALL;
-                    grid[cell.r][cell.c] = newValue;
-                    handleGridInput.paintValue = newValue;
-                } else {
-                    grid[cell.r][cell.c] = paintValue;
-                }
-            }
-        } else if (pathTool === 'start') {
-            if (endCell && cell.r === endCell.r && cell.c === endCell.c) return;
-            if (startCell) grid[startCell.r][startCell.c] = CELL_EMPTY;
-            startCell = cell;
-            grid[cell.r][cell.c] = CELL_START;
-            handleGridInput.paintValue = undefined;
-        } else if (pathTool === 'end') {
-            if (startCell && cell.r === startCell.r && cell.c === startCell.c) return;
-            if (endCell) grid[endCell.r][endCell.c] = CELL_EMPTY;
-            endCell = cell;
-            grid[cell.r][cell.c] = CELL_END;
-            handleGridInput.paintValue = undefined;
-        }
+        handleGridInput.paintValue = applyPathToolAtCell(cell, paintValue);
         drawGrid();
     }
 
-    function stopDrawing() {
+    function clearDrawingState() {
         isDrawing = false;
         handleGridInput.paintValue = undefined;
     }
 
     function moveFocusedCell(rowDelta, colDelta) {
+        if (gridRows <= 0 || gridCols <= 0) return;
         if (!focusedCell) {
             focusedCell = startCell ? { ...startCell } : { r: 0, c: 0 };
         } else {
@@ -1183,7 +1161,7 @@
     canvas.addEventListener('focus', activateCanvasKeyboardAccessibility);
     canvas.addEventListener('blur', deactivateCanvasKeyboardAccessibility);
     canvas.addEventListener('keydown', handleCanvasKeydown);
-    window.addEventListener('mouseup', stopDrawing);
+    window.addEventListener('mouseup', clearDrawingState);
 
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
@@ -1198,9 +1176,9 @@
         e.preventDefault();
         if (isDrawing && pathTool === 'wall') handleGridInput(e, handleGridInput.paintValue);
     }, { passive: false });
-    window.addEventListener('touchend', stopDrawing, { passive: true });
-    window.addEventListener('touchcancel', stopDrawing, { passive: true });
-    window.addEventListener('blur', stopDrawing);
+    window.addEventListener('touchend', clearDrawingState, { passive: true });
+    window.addEventListener('touchcancel', clearDrawingState, { passive: true });
+    window.addEventListener('blur', clearDrawingState);
 
     // Grid tool buttons
     document.querySelectorAll('[data-tool]').forEach(btn => {
