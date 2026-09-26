@@ -15,6 +15,7 @@ let currentRole = 'admin';
 const LABOR_THRESHOLD_HIGH = 30; // Labor % above this shows red
 const LABOR_THRESHOLD_BONUS = 32; // Labor % below this qualifies for bonus
 const MAX_JOBS_PER_WEEK = 7; // Maximum expected jobs per week for 100% completion
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 // DOM Elements
 const userRoleSelect = document.getElementById('userRole');
@@ -43,6 +44,35 @@ function setupEventListeners() {
     exportBtn.addEventListener('click', handleExport);
     saveBtn.addEventListener('click', handleSaveSnapshot);
     laborInput.addEventListener('input', handleLaborInputChange);
+    window.addEventListener('resize', updateCharts);
+}
+
+// Ensure day data has valid numeric values
+function normalizeDayData(data = {}) {
+    return {
+        revenue: Number.isFinite(Number(data.revenue)) ? Math.max(0, Number(data.revenue)) : 0,
+        labor: Number.isFinite(Number(data.labor)) ? Math.max(0, Math.min(100, Number(data.labor))) : 0,
+        hours: Number.isFinite(Number(data.hours)) ? Math.max(0, Number(data.hours)) : 0,
+        jobs: Number.isFinite(Number(data.jobs)) ? Math.max(0, Math.floor(Number(data.jobs))) : 0
+    };
+}
+
+// Ensure full weekly structure exists even with malformed/stale localStorage data
+function normalizeWeeklyData(data = {}) {
+    const normalized = {};
+    DAYS_OF_WEEK.forEach(day => {
+        normalized[day] = normalizeDayData(data[day]);
+    });
+    return normalized;
+}
+
+function safeParseJSON(value, fallback) {
+    if (!value) return fallback;
+    try {
+        return JSON.parse(value);
+    } catch (error) {
+        return fallback;
+    }
 }
 
 // Handle Role Change
@@ -288,7 +318,7 @@ function updateRevenueChart() {
 function updateLaborChart() {
     const laborChartEl = document.getElementById('laborChart');
     const days = Object.keys(weeklyData);
-    const width = laborChartEl.offsetWidth - 32;
+    const width = Math.max(laborChartEl.offsetWidth - 32, 200);
     const height = 220;
     const padding = 30;
     
@@ -443,8 +473,8 @@ function handleSaveSnapshot() {
 
 // Get Snapshots from LocalStorage
 function getSnapshots() {
-    const snapshots = localStorage.getItem('snapshots');
-    return snapshots ? JSON.parse(snapshots) : [];
+    const snapshots = safeParseJSON(localStorage.getItem('snapshots'), []);
+    return Array.isArray(snapshots) ? snapshots : [];
 }
 
 // Display Snapshots
@@ -516,10 +546,9 @@ function saveToLocalStorage() {
 
 // Load from LocalStorage
 function loadFromLocalStorage() {
-    const saved = localStorage.getItem('weeklyData');
-    if (saved) {
-        weeklyData = JSON.parse(saved);
-    }
+    const savedData = safeParseJSON(localStorage.getItem('weeklyData'), {});
+    weeklyData = normalizeWeeklyData(savedData);
+    saveToLocalStorage();
     displaySnapshots();
 }
 

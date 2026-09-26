@@ -1,0 +1,19 @@
+UPGRADED WORKING ARTIFACT
+=========================
+
+What was upgraded:
+- Hardened dashboard localStorage loading so malformed/stale data no longer breaks the app.
+- Added weekly data normalization and numeric clamping for safer runtime behavior.
+- Improved chart stability on narrow/mobile layouts.
+- Upgraded repository loading to fetch all paginated GitHub repositories (not just first 100).
+- Sanitized repository text rendering to reduce XSS risk from untrusted repo metadata.
+
+How to use/download:
+1) Download this repository snapshot/zip from GitHub.
+2) Open index.html for the dashboard.
+3) Open repos.html for repository management.
+
+Files changed:
+- script.js
+- repos.js
+- ARTIFACT_DOWNLOAD.txt

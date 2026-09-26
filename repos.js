@@ -33,6 +33,53 @@ function showStatus(message, type = 'info') {
         if (type !== 'error') {
             statusMessage.innerHTML = '';
         }
+
+        // Escape untrusted text before rendering as HTML
+        function escapeHtml(value) {
+            const text = String(value ?? '');
+            return text
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        // Fetch all repository pages (GitHub API caps per_page at 100)
+        async function fetchAllRepositories() {
+            let page = 1;
+            const allRepos = [];
+
+            while (true) {
+                const reposResponse = await fetch(`https://api.github.com/user/repos?per_page=100&affiliation=owner&page=${page}`, {
+                    headers: {
+                        'Authorization': `token ${githubToken}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (!reposResponse.ok) {
+                    const errorData = await reposResponse.json().catch(() => ({}));
+                    const errorMessage = errorData.message || 'Failed to load repositories';
+                    throw new Error(errorMessage);
+                }
+
+                const pageRepos = await reposResponse.json();
+                if (!Array.isArray(pageRepos) || pageRepos.length === 0) {
+                    break;
+                }
+
+                allRepos.push(...pageRepos);
+
+                if (pageRepos.length < 100) {
+                    break;
+                }
+
+                page++;
+            }
+
+            return allRepos;
+        }
     }, 5000);
 }
 
@@ -67,19 +114,8 @@ async function loadRepositories() {
 
         const user = await userResponse.json();
         
-        // Get all repositories (including private ones)
-        const reposResponse = await fetch(`https://api.github.com/user/repos?per_page=100&affiliation=owner`, {
-            headers: {
-                'Authorization': `token ${githubToken}`,
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        });
-
-        if (!reposResponse.ok) {
-            throw new Error('Failed to load repositories');
-        }
-
-        repositories = await reposResponse.json();
+        // Get all repositories (including private ones), across all pages
+        repositories = await fetchAllRepositories();
         
         // Sort repositories: public first, then by name
         repositories.sort((a, b) => {
@@ -120,19 +156,24 @@ function displayRepositories() {
         const visibility = repo.private ? 'private' : 'public';
         const visibilityText = repo.private ? 'Private' : 'Public';
         
+        const safeRepoName = escapeHtml(repo.name);
+        const safeDescription = escapeHtml(repo.description || 'No description');
+        const encodedRepoName = encodeURIComponent(repo.name);
+        const encodedOwnerLogin = encodeURIComponent(repo.owner.login);
+
         html += `
             <div class="repo-item ${visibility}">
                 <div class="repo-info">
                     <div class="repo-name">
-                        ${repo.name}
+                        ${safeRepoName}
                         <span class="repo-visibility ${visibility}">${visibilityText}</span>
                     </div>
                     <div style="font-size: 12px; color: #666;">
-                        ${repo.description || 'No description'}
+                        ${safeDescription}
                     </div>
                 </div>
                 ${!repo.private ? `
-                    <button class="btn btn-success" onclick="makeRepositoryPrivate('${repo.name}', '${repo.owner.login}')">
+                    <button class="btn btn-success" onclick="makeRepositoryPrivate(decodeURIComponent('${encodedRepoName}'), decodeURIComponent('${encodedOwnerLogin}'))">
                         Make Private
                     </button>
                 ` : `
