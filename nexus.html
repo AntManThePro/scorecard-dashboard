@@ -499,6 +499,7 @@
     let currentMode = 'sort';
     let isRunning = false;
     let animationId = null;
+    let activeRunToken = 0;
     let stats = { ops: 0, comps: 0, time: 0, elements: 0 };
 
     // ── STAT DISPLAY ──
@@ -565,11 +566,22 @@
     }
 
     function cancelAnimation() {
+        activeRunToken++;
         isRunning = false;
         if (animationId) {
             cancelAnimationFrame(animationId);
             animationId = null;
         }
+    }
+
+    function startRun() {
+        activeRunToken++;
+        isRunning = true;
+        return activeRunToken;
+    }
+
+    function isRunActive(runToken) {
+        return isRunning && activeRunToken === runToken;
     }
 
     // ══════════════════════════════════════════════════
@@ -635,14 +647,14 @@
 
     async function runSort(generator) {
         if (isRunning) return;
-        isRunning = true;
+        const runToken = startRun();
         resetStats();
         stats.elements = sortArray.length;
         sortHighlight.sorted = [];
         const startTime = performance.now();
 
         for (const step of generator) {
-            if (!isRunning) break;
+            if (!isRunActive(runToken)) break;
             sortHighlight.comparing = step.comparing || [];
             sortHighlight.swapping = step.swapping || [];
             if (step.sorted) sortHighlight.sorted = step.sorted;
@@ -655,15 +667,15 @@
         }
 
         // Mark all sorted only when the run completed normally.
-        if (isRunning) {
+        if (isRunActive(runToken)) {
             sortHighlight.comparing = [];
             sortHighlight.swapping = [];
             sortHighlight.sorted = Array.from({ length: sortArray.length }, (_, i) => i);
             stats.time = Math.round(performance.now() - startTime);
             updateStats();
             drawSort();
+            isRunning = false;
         }
-        isRunning = false;
     }
 
     // Bubble Sort
@@ -1052,7 +1064,7 @@
 
     async function runPathfind(algo) {
         if (isRunning || !startCell || !endCell) return;
-        isRunning = true;
+        const runToken = startRun();
         resetStats();
         clearPathVisualization();
         drawGrid();
@@ -1074,7 +1086,7 @@
             const closedSet = new Set();
 
             while (openSet.length > 0) {
-                if (!isRunning) break;
+                if (!isRunActive(runToken)) break;
                 openSet.sort((a, b) => (fScore[key(a.r, a.c)] || Infinity) - (fScore[key(b.r, b.c)] || Infinity));
                 const current = openSet.shift();
                 const ck = key(current.r, current.c);
@@ -1091,6 +1103,7 @@
                 updateStats();
                 drawGrid();
                 await sleep(getPathSpeed());
+                if (!isRunActive(runToken)) break;
 
                 for (const nb of neighbors(current.r, current.c)) {
                     const nk = key(nb.r, nb.c);
@@ -1113,7 +1126,7 @@
             const visited = new Set([key(startCell.r, startCell.c)]);
 
             while (queue.length > 0) {
-                if (!isRunning) break;
+                if (!isRunActive(runToken)) break;
                 const current = queue.shift();
                 const ck = key(current.r, current.c);
 
@@ -1124,6 +1137,7 @@
                 updateStats();
                 drawGrid();
                 await sleep(getPathSpeed());
+                if (!isRunActive(runToken)) break;
 
                 for (const nb of neighbors(current.r, current.c)) {
                     const nk = key(nb.r, nb.c);
@@ -1141,7 +1155,7 @@
             const visited = new Set([key(startCell.r, startCell.c)]);
 
             while (stack.length > 0) {
-                if (!isRunning) break;
+                if (!isRunActive(runToken)) break;
                 const current = stack.pop();
                 const ck = key(current.r, current.c);
 
@@ -1152,6 +1166,7 @@
                 updateStats();
                 drawGrid();
                 await sleep(getPathSpeed());
+                if (!isRunActive(runToken)) break;
 
                 for (const nb of neighbors(current.r, current.c)) {
                     const nk = key(nb.r, nb.c);
@@ -1167,7 +1182,7 @@
         }
 
         // Reconstruct path
-        if (found) {
+        if (found && isRunActive(runToken)) {
             let ck = key(endCell.r, endCell.c);
             while (cameFrom[ck]) {
                 const [r, c] = cameFrom[ck].split(',').map(Number);
@@ -1176,10 +1191,12 @@
             }
         }
 
-        stats.time = Math.round(performance.now() - startTime);
-        updateStats();
-        drawGrid();
-        isRunning = false;
+        if (isRunActive(runToken)) {
+            stats.time = Math.round(performance.now() - startTime);
+            updateStats();
+            drawGrid();
+            isRunning = false;
+        }
     }
 
     // Path button handlers
@@ -1278,11 +1295,14 @@
                 nx = dx / dist;
                 ny = dy / dist;
             }
-            const p = 2 * (a.vx * nx + a.vy * ny - b.vx * nx - b.vy * ny) / (a.mass + b.mass);
-            a.vx -= p * b.mass * nx;
-            a.vy -= p * b.mass * ny;
-            b.vx += p * a.mass * nx;
-            b.vy += p * a.mass * ny;
+            const relativeVelocity = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
+            if (relativeVelocity > 0) {
+                const p = 2 * relativeVelocity / (a.mass + b.mass);
+                a.vx -= p * b.mass * nx;
+                a.vy -= p * b.mass * ny;
+                b.vx += p * a.mass * nx;
+                b.vy += p * a.mass * ny;
+            }
             // Separate
             const overlap = (a.radius + b.radius - dist) / 2;
             a.x -= overlap * nx;
