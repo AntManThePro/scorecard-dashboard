@@ -922,7 +922,7 @@
             handleGridInput(e, handleGridInput.paintValue);
         }
     });
-    canvas.addEventListener('mouseup', () => { isDrawing = false; });
+window.addEventListener('mouseup', () => { isDrawing = false; });
 
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
