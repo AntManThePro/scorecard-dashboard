@@ -1,63 +1,32 @@
 /**
- * Unit tests for localStorage persistence helpers.
+ * Unit tests for the production localStorage helpers exported from script.js.
  *
- * These tests exercise the save/load/snapshot storage logic extracted from
- * script.js, using Jest's built-in jsdom localStorage mock.
+ * These tests load the real dashboard module in jsdom so persistence behaviour
+ * stays aligned with the app code.
  */
 
 'use strict';
 
+const { loadDashboardModule, teardownDashboardDOM } = require('../helpers/dashboard-module.js');
 const { cloneData, buildSnapshot, FULL_WEEK_DATA, EMPTY_WEEK_DATA } =
   require('../helpers/test-data.js');
-
-// ---------------------------------------------------------------------------
-// Inline reference implementations (mirrors script.js saveToLocalStorage,
-// loadFromLocalStorage, getSnapshots, handleSaveSnapshot, deleteSnapshot)
-// ---------------------------------------------------------------------------
 
 const STORAGE_KEY_WEEKLY = 'weeklyData';
 const STORAGE_KEY_SNAPSHOTS = 'snapshots';
 
-function saveToLocalStorage(weeklyData) {
-  localStorage.setItem(STORAGE_KEY_WEEKLY, JSON.stringify(weeklyData));
-}
-
-function loadFromLocalStorage() {
-  const saved = localStorage.getItem(STORAGE_KEY_WEEKLY);
-  return saved ? JSON.parse(saved) : null;
-}
-
-function getSnapshots() {
-  const snapshots = localStorage.getItem(STORAGE_KEY_SNAPSHOTS);
-  return snapshots ? JSON.parse(snapshots) : [];
-}
-
-function saveSnapshot(weeklyData, metrics) {
-  const timestamp = new Date().toISOString();
-  const snapshots = getSnapshots();
-  const id = timestamp;
-  const snapshot = {
-    id,
-    date: new Date().toLocaleString(),
-    data: JSON.parse(JSON.stringify(weeklyData)),
-    metrics,
-  };
-  snapshots.push(snapshot);
-  localStorage.setItem(STORAGE_KEY_SNAPSHOTS, JSON.stringify(snapshots));
-  return snapshot;
-}
-
-function deleteSnapshot(id) {
-  let snapshots = getSnapshots();
-  snapshots = snapshots.filter(s => s.id !== id);
-  localStorage.setItem(STORAGE_KEY_SNAPSHOTS, JSON.stringify(snapshots));
-}
+let dashboard;
 
 // ---------------------------------------------------------------------------
 // beforeEach / afterEach
 // ---------------------------------------------------------------------------
 beforeEach(() => {
-  localStorage.clear();
+  dashboard = loadDashboardModule();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+  jest.restoreAllMocks();
+  teardownDashboardDOM();
 });
 
 // ---------------------------------------------------------------------------
@@ -69,7 +38,8 @@ describe('saveToLocalStorage', () => {
     const data = cloneData(FULL_WEEK_DATA);
 
     // Act
-    saveToLocalStorage(data);
+    dashboard.__setWeeklyData(data);
+    dashboard.saveToLocalStorage();
 
     // Assert
     const raw = localStorage.getItem(STORAGE_KEY_WEEKLY);
@@ -79,11 +49,13 @@ describe('saveToLocalStorage', () => {
 
   it('should overwrite previously stored data', () => {
     // Arrange
-    saveToLocalStorage(cloneData(FULL_WEEK_DATA));
+    dashboard.__setWeeklyData(cloneData(FULL_WEEK_DATA));
+    dashboard.saveToLocalStorage();
     const newData = cloneData(EMPTY_WEEK_DATA);
 
     // Act
-    saveToLocalStorage(newData);
+    dashboard.__setWeeklyData(newData);
+    dashboard.saveToLocalStorage();
 
     // Assert
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY_WEEKLY))).toEqual(newData);
@@ -94,38 +66,50 @@ describe('saveToLocalStorage', () => {
     const original = cloneData(FULL_WEEK_DATA);
 
     // Act
-    saveToLocalStorage(original);
-    const loaded = loadFromLocalStorage();
+    dashboard.__setWeeklyData(original);
+    dashboard.saveToLocalStorage();
+    dashboard.__setWeeklyData(cloneData(EMPTY_WEEK_DATA));
+    dashboard.loadFromLocalStorage();
 
     // Assert
-    expect(loaded).toEqual(original);
+    expect(dashboard.__getWeeklyData()).toEqual(original);
   });
 });
 
 describe('loadFromLocalStorage', () => {
-  it('should return null when no data has been stored', () => {
-    expect(loadFromLocalStorage()).toBeNull();
+  it('should leave the current state unchanged when no data has been stored', () => {
+    const emptyWeek = cloneData(EMPTY_WEEK_DATA);
+    dashboard.__setWeeklyData(emptyWeek);
+
+    dashboard.loadFromLocalStorage();
+
+    expect(dashboard.__getWeeklyData()).toEqual(emptyWeek);
   });
 
-  it('should return the stored data object when data exists', () => {
+  it('should restore the stored data object when data exists', () => {
     // Arrange
     const data = cloneData(FULL_WEEK_DATA);
-    saveToLocalStorage(data);
+    dashboard.__setWeeklyData(data);
+    dashboard.saveToLocalStorage();
+    dashboard.__setWeeklyData(cloneData(EMPTY_WEEK_DATA));
 
     // Act
-    const result = loadFromLocalStorage();
+    dashboard.loadFromLocalStorage();
 
     // Assert
-    expect(result).toEqual(data);
+    expect(dashboard.__getWeeklyData()).toEqual(data);
   });
 
   it('should preserve numeric types after serialisation round-trip', () => {
     // Arrange
     const data = cloneData(FULL_WEEK_DATA);
-    saveToLocalStorage(data);
+    dashboard.__setWeeklyData(data);
+    dashboard.saveToLocalStorage();
+    dashboard.__setWeeklyData(cloneData(EMPTY_WEEK_DATA));
 
     // Act
-    const result = loadFromLocalStorage();
+    dashboard.loadFromLocalStorage();
+    const result = dashboard.__getWeeklyData();
 
     // Assert – revenue, labor, hours, jobs must all be numbers
     Object.values(result).forEach(day => {
@@ -142,7 +126,7 @@ describe('loadFromLocalStorage', () => {
 // ---------------------------------------------------------------------------
 describe('getSnapshots', () => {
   it('should return an empty array when no snapshots exist', () => {
-    expect(getSnapshots()).toEqual([]);
+    expect(dashboard.getSnapshots()).toEqual([]);
   });
 
   it('should return all stored snapshots', () => {
@@ -152,7 +136,7 @@ describe('getSnapshots', () => {
     localStorage.setItem(STORAGE_KEY_SNAPSHOTS, JSON.stringify([snap1, snap2]));
 
     // Act
-    const result = getSnapshots();
+    const result = dashboard.getSnapshots();
 
     // Assert
     expect(result).toHaveLength(2);
@@ -163,50 +147,66 @@ describe('getSnapshots', () => {
 // saveSnapshot
 // ---------------------------------------------------------------------------
 describe('saveSnapshot', () => {
+  beforeEach(() => {
+    jest.spyOn(window, 'alert').mockImplementation(() => {});
+  });
+
   it('should add a new snapshot to localStorage', () => {
     // Arrange
     const data = cloneData(FULL_WEEK_DATA);
-    const metrics = { totalRevenue: 18900, avgLabor: 29 };
+    dashboard.__setWeeklyData(data);
 
     // Act
-    saveSnapshot(data, metrics);
+    dashboard.handleSaveSnapshot();
 
     // Assert
-    expect(getSnapshots()).toHaveLength(1);
+    expect(dashboard.getSnapshots()).toHaveLength(1);
   });
 
-  it('should store a deep copy of weeklyData so later mutations do not corrupt the snapshot', () => {
+  it('should store a deep copy of weeklyData so later state changes do not corrupt the snapshot', () => {
     // Arrange
     const data = cloneData(FULL_WEEK_DATA);
-    const metrics = { totalRevenue: 18900 };
-    saveSnapshot(data, metrics);
+    dashboard.__setWeeklyData(data);
+    dashboard.handleSaveSnapshot();
 
-    // Act – mutate the original
-    data.Monday.revenue = 99999;
+    // Act – replace the live application state after saving
+    dashboard.__setWeeklyData(cloneData(EMPTY_WEEK_DATA));
 
     // Assert – snapshot must be unchanged
-    const saved = getSnapshots()[0];
+    const saved = dashboard.getSnapshots()[0];
     expect(saved.data.Monday.revenue).toBe(2500);
   });
 
   it('should accumulate multiple snapshots', () => {
     // Arrange
-    const metrics = { totalRevenue: 0 };
-    saveSnapshot(cloneData(FULL_WEEK_DATA),  metrics);
-    saveSnapshot(cloneData(EMPTY_WEEK_DATA), metrics);
-    saveSnapshot(cloneData(FULL_WEEK_DATA),  metrics);
+    jest.useFakeTimers();
+
+    dashboard.__setWeeklyData(cloneData(FULL_WEEK_DATA));
+    jest.setSystemTime(new Date('2025-01-01T00:00:00.000Z'));
+    dashboard.handleSaveSnapshot();
+
+    dashboard.__setWeeklyData(cloneData(EMPTY_WEEK_DATA));
+    jest.setSystemTime(new Date('2025-01-01T00:00:01.000Z'));
+    dashboard.handleSaveSnapshot();
+
+    dashboard.__setWeeklyData(cloneData(FULL_WEEK_DATA));
+    jest.setSystemTime(new Date('2025-01-01T00:00:02.000Z'));
+    dashboard.handleSaveSnapshot();
 
     // Assert
-    expect(getSnapshots()).toHaveLength(3);
+    expect(dashboard.getSnapshots()).toHaveLength(3);
   });
 
-  it('should include an ISO timestamp as the snapshot id', () => {
+  it('should use the ISO timestamp as the snapshot id', () => {
     // Arrange / Act
-    const snap = saveSnapshot(cloneData(FULL_WEEK_DATA), {});
+    jest.useFakeTimers();
+    const timestamp = new Date('2025-01-01T00:00:00.000Z');
+    jest.setSystemTime(timestamp);
+    dashboard.__setWeeklyData(cloneData(FULL_WEEK_DATA));
+    dashboard.handleSaveSnapshot();
+    const snap = dashboard.getSnapshots()[0];
 
-    // Assert – id must begin with a parseable ISO date string
-    const isoPrefix = snap.id.split('-').slice(0, 3).join('-');
-    expect(isoPrefix).toMatch(/^\d{4}-\d{2}-\d{2}/);
+    expect(snap.id).toBe(timestamp.toISOString());
   });
 });
 
@@ -216,48 +216,75 @@ describe('saveSnapshot', () => {
 describe('deleteSnapshot', () => {
   it('should remove the snapshot with the matching id', () => {
     // Arrange
-    const snap1 = saveSnapshot(cloneData(FULL_WEEK_DATA),  { totalRevenue: 18900 });
-    const snap2 = saveSnapshot(cloneData(EMPTY_WEEK_DATA), { totalRevenue: 0 });
+    jest.useFakeTimers();
+    jest.spyOn(window, 'confirm').mockReturnValue(true);
+
+    dashboard.__setWeeklyData(cloneData(FULL_WEEK_DATA));
+    jest.setSystemTime(new Date('2025-01-01T00:00:00.000Z'));
+    dashboard.handleSaveSnapshot();
+    const snap1 = dashboard.getSnapshots()[0];
+
+    dashboard.__setWeeklyData(cloneData(EMPTY_WEEK_DATA));
+    jest.setSystemTime(new Date('2025-01-01T00:00:01.000Z'));
+    dashboard.handleSaveSnapshot();
+    const snap2 = dashboard.getSnapshots()[1];
 
     // Act
-    deleteSnapshot(snap1.id);
+    dashboard.deleteSnapshot(snap1.id);
 
     // Assert
-    const remaining = getSnapshots();
+    const remaining = dashboard.getSnapshots();
     expect(remaining).toHaveLength(1);
     expect(remaining[0].id).toBe(snap2.id);
   });
 
   it('should leave other snapshots intact when deleting one', () => {
     // Arrange – three snapshots
-    const s1 = saveSnapshot(cloneData(FULL_WEEK_DATA), {});
-    saveSnapshot(cloneData(EMPTY_WEEK_DATA), {});
-    saveSnapshot(cloneData(FULL_WEEK_DATA), {});
+    jest.useFakeTimers();
+    jest.spyOn(window, 'confirm').mockReturnValue(true);
+
+    dashboard.__setWeeklyData(cloneData(FULL_WEEK_DATA));
+    jest.setSystemTime(new Date('2025-01-01T00:00:00.000Z'));
+    dashboard.handleSaveSnapshot();
+    const s1 = dashboard.getSnapshots()[0];
+
+    dashboard.__setWeeklyData(cloneData(EMPTY_WEEK_DATA));
+    jest.setSystemTime(new Date('2025-01-01T00:00:01.000Z'));
+    dashboard.handleSaveSnapshot();
+
+    dashboard.__setWeeklyData(cloneData(FULL_WEEK_DATA));
+    jest.setSystemTime(new Date('2025-01-01T00:00:02.000Z'));
+    dashboard.handleSaveSnapshot();
 
     // Act
-    deleteSnapshot(s1.id);
+    dashboard.deleteSnapshot(s1.id);
 
     // Assert
-    expect(getSnapshots()).toHaveLength(2);
+    expect(dashboard.getSnapshots()).toHaveLength(2);
   });
 
   it('should not throw when the id does not exist', () => {
     // Arrange
-    saveSnapshot(cloneData(FULL_WEEK_DATA), {});
+    jest.spyOn(window, 'confirm').mockReturnValue(true);
+    dashboard.__setWeeklyData(cloneData(FULL_WEEK_DATA));
+    dashboard.handleSaveSnapshot();
 
     // Act & Assert
-    expect(() => deleteSnapshot('non-existent-id')).not.toThrow();
-    expect(getSnapshots()).toHaveLength(1);
+    expect(() => dashboard.deleteSnapshot('non-existent-id')).not.toThrow();
+    expect(dashboard.getSnapshots()).toHaveLength(1);
   });
 
   it('should result in an empty list after deleting the only snapshot', () => {
     // Arrange
-    const snap = saveSnapshot(cloneData(FULL_WEEK_DATA), {});
+    jest.spyOn(window, 'confirm').mockReturnValue(true);
+    dashboard.__setWeeklyData(cloneData(FULL_WEEK_DATA));
+    dashboard.handleSaveSnapshot();
+    const snap = dashboard.getSnapshots()[0];
 
     // Act
-    deleteSnapshot(snap.id);
+    dashboard.deleteSnapshot(snap.id);
 
     // Assert
-    expect(getSnapshots()).toEqual([]);
+    expect(dashboard.getSnapshots()).toEqual([]);
   });
 });

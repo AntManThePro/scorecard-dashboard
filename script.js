@@ -16,6 +16,10 @@ const LABOR_THRESHOLD_HIGH = 30; // Labor % above this shows red
 const LABOR_THRESHOLD_BONUS = 32; // Labor % below this qualifies for bonus
 const MAX_JOBS_PER_WEEK = 7; // Maximum expected jobs per week for 100% completion
 
+function cloneWeeklyData(data) {
+    return JSON.parse(JSON.stringify(data));
+}
+
 // DOM Elements
 const userRoleSelect = document.getElementById('userRole');
 const daySelect = document.getElementById('daySelect');
@@ -85,13 +89,35 @@ function handleLaborInputChange(e) {
     }
 }
 
+function parseRevenueInput(value) {
+    return parseFloat(value) || 0;
+}
+
+function parseLaborInput(value) {
+    return parseFloat(value) || 0;
+}
+
+function parseHoursInput(value) {
+    return parseFloat(value) || 0;
+}
+
+function parseJobsInput(value) {
+    return parseInt(value, 10) || 0;
+}
+
+function isValidDay(day) {
+    return Object.prototype.hasOwnProperty.call(weeklyData, day);
+}
+
 // Handle Add Entry
 function handleAddEntry() {
     const day = daySelect.value;
-    const revenue = parseFloat(revenueInput.value) || 0;
-    const labor = parseFloat(laborInput.value) || 0;
-    const hours = parseFloat(hoursInput.value) || 0;
-    const jobs = parseInt(jobsCompletedInput.value) || 0;
+    if (!isValidDay(day)) return;
+
+    const revenue = parseRevenueInput(revenueInput.value);
+    const labor = parseLaborInput(laborInput.value);
+    const hours = parseHoursInput(hoursInput.value);
+    const jobs = parseJobsInput(jobsCompletedInput.value);
 
     // Update data
     weeklyData[day] = { revenue, labor, hours, jobs };
@@ -424,15 +450,8 @@ function handleSaveSnapshot() {
         return;
     }
 
-    const timestamp = new Date().toISOString();
     const snapshots = getSnapshots();
-    
-    const snapshot = {
-        id: timestamp,
-        date: new Date().toLocaleString(),
-        data: JSON.parse(JSON.stringify(weeklyData)),
-        metrics: calculateWeeklyMetrics()
-    };
+    const snapshot = createSnapshot();
 
     snapshots.push(snapshot);
     localStorage.setItem('snapshots', JSON.stringify(snapshots));
@@ -445,6 +464,15 @@ function handleSaveSnapshot() {
 function getSnapshots() {
     const snapshots = localStorage.getItem('snapshots');
     return snapshots ? JSON.parse(snapshots) : [];
+}
+
+function createSnapshot(data = weeklyData, metrics = calculateWeeklyMetrics(), now = new Date()) {
+    return {
+        id: now.toISOString(),
+        date: now.toLocaleString(),
+        data: cloneWeeklyData(data),
+        metrics
+    };
 }
 
 // Display Snapshots
@@ -492,7 +520,7 @@ function loadSnapshot(id) {
     const snapshot = snapshots.find(s => s.id === id);
     
     if (snapshot) {
-        weeklyData = JSON.parse(JSON.stringify(snapshot.data));
+        weeklyData = cloneWeeklyData(snapshot.data);
         updateUI();
         saveToLocalStorage();
         alert('Snapshot loaded successfully!');
@@ -510,8 +538,8 @@ function deleteSnapshot(id) {
 }
 
 // Save to LocalStorage
-function saveToLocalStorage() {
-    localStorage.setItem('weeklyData', JSON.stringify(weeklyData));
+function saveToLocalStorage(data = weeklyData) {
+    localStorage.setItem('weeklyData', JSON.stringify(data));
 }
 
 // Load from LocalStorage
@@ -521,6 +549,31 @@ function loadFromLocalStorage() {
         weeklyData = JSON.parse(saved);
     }
     displaySnapshots();
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        calculateWeeklyMetrics,
+        createSnapshot,
+        deleteSnapshot,
+        getSnapshots,
+        handleSaveSnapshot,
+        isValidDay,
+        loadFromLocalStorage,
+        loadSnapshot,
+        parseHoursInput,
+        parseJobsInput,
+        parseLaborInput,
+        parseRevenueInput,
+        saveToLocalStorage,
+        __getWeeklyData: () => cloneWeeklyData(weeklyData),
+        __setCurrentRole: (role) => {
+            currentRole = role;
+        },
+        __setWeeklyData: (data) => {
+            weeklyData = cloneWeeklyData(data);
+        }
+    };
 }
 
 // Trigger Confetti
