@@ -192,7 +192,6 @@ describe('Snapshot – loading', () => {
     enterDay({ day: 'Monday', revenue: '5000', labor: '28', hours: '8', jobs: '1' });
     saveSnapshot();
     const loadBtn = document.querySelector('.snapshot-actions .btn-load');
-    jest.spyOn(window, 'alert').mockImplementation(() => {});
 
     // Act
     loadBtn.click();
