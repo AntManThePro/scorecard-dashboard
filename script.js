@@ -249,14 +249,17 @@ function updateMetrics() {
 
 // Calculate Trends from daily data
 function calculateTrends() {
-    const days = Object.keys(weeklyData);
-    const revenueData = days.map(d => weeklyData[d].revenue).filter(v => v > 0);
-    const laborData = days.map(d => weeklyData[d].labor).filter(v => v > 0);
-    
     return {
-        revenue: momentum(revenueData),
-        labor: momentum(laborData)
+        revenue: trendMomentumForMetric('revenue'),
+        labor: trendMomentumForMetric('labor')
     };
+}
+
+function trendMomentumForMetric(metric) {
+    const values = Object.keys(weeklyData)
+        .map(day => weeklyData[day][metric])
+        .filter(value => value > 0);
+    return momentum(values);
 }
 
 // Momentum: calculates the difference between the last two nonzero values
