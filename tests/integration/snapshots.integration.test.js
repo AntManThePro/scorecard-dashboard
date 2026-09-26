@@ -178,7 +178,6 @@ describe('Snapshot – loading', () => {
     enterDay({ day: 'Monday', revenue: '100', labor: '50', hours: '1', jobs: '0' });
 
     // Act – click the Load button rendered inside the snapshots list
-    jest.spyOn(window, 'alert').mockImplementation(() => {});
     const loadBtn = document.querySelector('.snapshot-actions .btn-load');
     expect(loadBtn).not.toBeNull();
     loadBtn.click();
