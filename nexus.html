@@ -699,15 +699,15 @@
 
     async function runSort(generator) {
         if (isRunning) return;
+        const runId = ++runGeneration;
         isRunning = true;
-        const runId = runGeneration;
         resetStats();
         stats.elements = sortArray.length;
         sortHighlight.sorted = [];
         const startTime = performance.now();
 
         for (const step of generator) {
-            if (runId !== runGeneration || !isRunning) break;
+            if (runId !== runGeneration) return;
             sortHighlight.comparing = step.comparing || [];
             sortHighlight.swapping = step.swapping || [];
             if (step.sorted) sortHighlight.sorted = step.sorted;
@@ -721,16 +721,15 @@
         }
 
         // Mark all sorted only when the run completed normally.
-        if (runId !== runGeneration) return;
-        if (isRunning) {
+        if (runId === runGeneration) {
             sortHighlight.comparing = [];
             sortHighlight.swapping = [];
             sortHighlight.sorted = Array.from({ length: sortArray.length }, (_, i) => i);
             stats.time = Math.round(performance.now() - startTime);
             updateStats();
             drawSort();
+            isRunning = false;
         }
-        if (runId === runGeneration) isRunning = false;
     }
 
     // Bubble Sort
@@ -1252,8 +1251,8 @@
 
     async function runPathfind(algo) {
         if (isRunning || !startCell || !endCell) return;
+        const runId = ++runGeneration;
         isRunning = true;
-        const runId = runGeneration;
         const runGrid = grid;
         resetStats();
         clearPathVisualization();
@@ -1372,7 +1371,6 @@
         }
 
         if (runId !== runGeneration || grid !== runGrid) return;
-
         // Reconstruct path
         if (found) {
             let ck = key(endCell.r, endCell.c);
