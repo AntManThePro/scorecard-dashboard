@@ -558,6 +558,7 @@
     // ── STATE ──
     let currentMode = 'sort';
     let isRunning = false;
+    let runGeneration = 0;
     let animationId = null;
     let stats = { ops: 0, comps: 0, time: 0, elements: 0 };
 
@@ -627,6 +628,7 @@
     }
 
     function cancelAnimation() {
+        runGeneration++;
         isRunning = false;
         if (animationId) {
             cancelAnimationFrame(animationId);
@@ -698,13 +700,14 @@
     async function runSort(generator) {
         if (isRunning) return;
         isRunning = true;
+        const runId = runGeneration;
         resetStats();
         stats.elements = sortArray.length;
         sortHighlight.sorted = [];
         const startTime = performance.now();
 
         for (const step of generator) {
-            if (!isRunning) break;
+            if (runId !== runGeneration || !isRunning) break;
             sortHighlight.comparing = step.comparing || [];
             sortHighlight.swapping = step.swapping || [];
             if (step.sorted) sortHighlight.sorted = step.sorted;
@@ -714,9 +717,11 @@
             updateStats();
             drawSort();
             await sleep(getSpeed());
+            if (runId !== runGeneration) return;
         }
 
         // Mark all sorted only when the run completed normally.
+        if (runId !== runGeneration) return;
         if (isRunning) {
             sortHighlight.comparing = [];
             sortHighlight.swapping = [];
@@ -725,7 +730,7 @@
             updateStats();
             drawSort();
         }
-        isRunning = false;
+        if (runId === runGeneration) isRunning = false;
     }
 
     // Bubble Sort
@@ -1248,7 +1253,7 @@
     async function runPathfind(algo) {
         if (isRunning || !startCell || !endCell) return;
         isRunning = true;
-        const runGrid = grid;
+        const runId = runGeneration;
         resetStats();
         clearPathVisualization();
         drawGrid();
@@ -1270,7 +1275,7 @@
             const closedSet = new Set();
 
             while (openSet.length > 0) {
-                if (!isRunning) break;
+                if (runId !== runGeneration || !isRunning) return;
                 openSet.sort((a, b) => (fScore[key(a.r, a.c)] || Infinity) - (fScore[key(b.r, b.c)] || Infinity));
                 const current = openSet.shift();
                 const ck = key(current.r, current.c);
@@ -1287,7 +1292,7 @@
                 updateStats();
                 drawGrid();
                 await sleep(getPathSpeed());
-                if (!isRunning || grid !== runGrid) return;
+                if (runId !== runGeneration) return;
 
                 for (const nb of neighbors(current.r, current.c)) {
                     const nk = key(nb.r, nb.c);
@@ -1310,7 +1315,7 @@
             const visited = new Set([key(startCell.r, startCell.c)]);
 
             while (queue.length > 0) {
-                if (!isRunning) break;
+                if (runId !== runGeneration || !isRunning) return;
                 const current = queue.shift();
                 const ck = key(current.r, current.c);
 
@@ -1321,7 +1326,7 @@
                 updateStats();
                 drawGrid();
                 await sleep(getPathSpeed());
-                if (!isRunning || grid !== runGrid) return;
+                if (runId !== runGeneration) return;
 
                 for (const nb of neighbors(current.r, current.c)) {
                     const nk = key(nb.r, nb.c);
@@ -1339,7 +1344,7 @@
             const visited = new Set([key(startCell.r, startCell.c)]);
 
             while (stack.length > 0) {
-                if (!isRunning) break;
+                if (runId !== runGeneration || !isRunning) return;
                 const current = stack.pop();
                 const ck = key(current.r, current.c);
 
@@ -1350,7 +1355,7 @@
                 updateStats();
                 drawGrid();
                 await sleep(getPathSpeed());
-                if (!isRunning || grid !== runGrid) return;
+                if (runId !== runGeneration) return;
 
                 for (const nb of neighbors(current.r, current.c)) {
                     const nk = key(nb.r, nb.c);
@@ -1365,6 +1370,8 @@
             }
         }
 
+        if (runId !== runGeneration) return;
+
         // Reconstruct path
         if (found) {
             let ck = key(endCell.r, endCell.c);
@@ -1378,7 +1385,7 @@
         stats.time = Math.round(performance.now() - startTime);
         updateStats();
         drawGrid();
-        isRunning = false;
+        if (runId === runGeneration) isRunning = false;
     }
 
     // Path button handlers
