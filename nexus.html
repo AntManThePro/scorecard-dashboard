@@ -1226,6 +1226,7 @@
     async function runPathfind(algo) {
         if (isRunning || !startCell || !endCell) return;
         isRunning = true;
+        const runGrid = grid;
         resetStats();
         clearPathVisualization();
         drawGrid();
@@ -1264,6 +1265,7 @@
                 updateStats();
                 drawGrid();
                 await sleep(getPathSpeed());
+                if (!isRunning || grid !== runGrid) return;
 
                 for (const nb of neighbors(current.r, current.c)) {
                     const nk = key(nb.r, nb.c);
@@ -1297,6 +1299,7 @@
                 updateStats();
                 drawGrid();
                 await sleep(getPathSpeed());
+                if (!isRunning || grid !== runGrid) return;
 
                 for (const nb of neighbors(current.r, current.c)) {
                     const nk = key(nb.r, nb.c);
@@ -1325,6 +1328,7 @@
                 updateStats();
                 drawGrid();
                 await sleep(getPathSpeed());
+                if (!isRunning || grid !== runGrid) return;
 
                 for (const nb of neighbors(current.r, current.c)) {
                     const nk = key(nb.r, nb.c);
