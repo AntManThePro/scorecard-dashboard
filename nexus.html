@@ -1483,11 +1483,14 @@
                 nx = dx / dist;
                 ny = dy / dist;
             }
-            const p = 2 * (a.vx * nx + a.vy * ny - b.vx * nx - b.vy * ny) / (a.mass + b.mass);
-            a.vx -= p * b.mass * nx;
-            a.vy -= p * b.mass * ny;
-            b.vx += p * a.mass * nx;
-            b.vy += p * a.mass * ny;
+            const relativeVelocity = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
+            if (relativeVelocity > 0) {
+                const p = 2 * relativeVelocity / (a.mass + b.mass);
+                a.vx -= p * b.mass * nx;
+                a.vy -= p * b.mass * ny;
+                b.vx += p * a.mass * nx;
+                b.vy += p * a.mass * ny;
+            }
             // Separate
             const overlap = (a.radius + b.radius - dist) / 2;
             a.x -= overlap * nx;
