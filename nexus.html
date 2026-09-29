@@ -602,7 +602,8 @@
         cancelAnimation();
         clearDrawingState();
         resetStats();
-        syncCanvasAccessibility(mode);
+        stopDrawing();
+        syncCanvasAccessibility(mode)
         sortControls.style.display = mode === 'sort' ? 'flex' : 'none';
         pathControls.style.display = mode === 'pathfind' ? 'flex' : 'none';
         physicsControls.style.display = mode === 'physics' ? 'flex' : 'none';
