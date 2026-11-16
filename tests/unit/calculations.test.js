@@ -17,24 +17,6 @@ const {
   cloneData,
 } = require('../helpers/test-data.js');
 
-const LABOR_THRESHOLD_BONUS = 32;
-const MAX_JOBS_PER_WEEK = 7;
-
-/** Bonus eligibility mirrors the condition in handleExport and updateBonusIndicator. */
-function isBonusEligible(metrics) {
-  return metrics.avgLabor > 0 && metrics.avgLabor < LABOR_THRESHOLD_BONUS;
-}
-
-/** Completion percentage mirrors the confetti-trigger logic in handleAddEntry. */
-function weekCompletionPercent(totalJobs) {
-  return (totalJobs / MAX_JOBS_PER_WEEK) * 100;
-}
-
-/** Revenue-per-job string formatting mirrors handleExport. */
-function formatRevenuePerJob(revenue, jobs) {
-  return jobs > 0 ? (revenue / jobs).toFixed(2) : '0.00';
-}
-
 let dashboard;
 
 beforeEach(() => {
@@ -202,7 +184,7 @@ describe('isBonusEligible', () => {
     dashboard.__setWeeklyData(cloneData(BONUS_ELIGIBLE_DATA));
     const metrics = dashboard.calculateWeeklyMetrics();
 
-    expect(isBonusEligible(metrics)).toBe(true);
+    expect(dashboard.isBonusEligible(metrics)).toBe(true);
   });
 
   it('should return false when avgLabor meets or exceeds the 32% threshold', () => {
@@ -210,29 +192,29 @@ describe('isBonusEligible', () => {
     dashboard.__setWeeklyData(cloneData(BONUS_INELIGIBLE_DATA));
     const metrics = dashboard.calculateWeeklyMetrics();
 
-    expect(isBonusEligible(metrics)).toBe(false);
+    expect(dashboard.isBonusEligible(metrics)).toBe(false);
   });
 
   it('should return false when avgLabor is exactly 32%', () => {
     // Edge case: boundary value
     const metrics = { avgLabor: 32 };
 
-    expect(isBonusEligible(metrics)).toBe(false);
+    expect(dashboard.isBonusEligible(metrics)).toBe(false);
   });
 
   it('should return false when there is no data (avgLabor = 0)', () => {
     dashboard.__setWeeklyData(cloneData(EMPTY_WEEK_DATA));
     const metrics = dashboard.calculateWeeklyMetrics();
 
-    expect(isBonusEligible(metrics)).toBe(false);
+    expect(dashboard.isBonusEligible(metrics)).toBe(false);
   });
 
   it('should return true for avgLabor just below the threshold (31.9)', () => {
-    expect(isBonusEligible({ avgLabor: 31.9 })).toBe(true);
+    expect(dashboard.isBonusEligible({ avgLabor: 31.9 })).toBe(true);
   });
 
   it('should return false for avgLabor just above the threshold (32.1)', () => {
-    expect(isBonusEligible({ avgLabor: 32.1 })).toBe(false);
+    expect(dashboard.isBonusEligible({ avgLabor: 32.1 })).toBe(false);
   });
 });
 
@@ -241,20 +223,20 @@ describe('isBonusEligible', () => {
 // ---------------------------------------------------------------------------
 describe('weekCompletionPercent', () => {
   it('should return 100 when all 7 jobs are completed', () => {
-    expect(weekCompletionPercent(7)).toBe(100);
+    expect(dashboard.weekCompletionPercent(7)).toBe(100);
   });
 
   it('should return 0 when no jobs are completed', () => {
-    expect(weekCompletionPercent(0)).toBe(0);
+    expect(dashboard.weekCompletionPercent(0)).toBe(0);
   });
 
   it('should return approximately 71.4 for 5 of 7 jobs', () => {
-    expect(weekCompletionPercent(5)).toBeCloseTo(71.43, 1);
+    expect(dashboard.weekCompletionPercent(5)).toBeCloseTo(71.43, 1);
   });
 
   it('should return the correct partial percentage for a single job', () => {
     // 1/7 ≈ 14.28%
-    expect(weekCompletionPercent(1)).toBeCloseTo(14.28, 1);
+    expect(dashboard.weekCompletionPercent(1)).toBeCloseTo(14.28, 1);
   });
 });
 
@@ -263,19 +245,19 @@ describe('weekCompletionPercent', () => {
 // ---------------------------------------------------------------------------
 describe('formatRevenuePerJob', () => {
   it('should return "0.00" when jobs is zero', () => {
-    expect(formatRevenuePerJob(1000, 0)).toBe('0.00');
+    expect(dashboard.formatRevenuePerJob(1000, 0)).toBe('0.00');
   });
 
   it('should format revenue/job to two decimal places', () => {
-    expect(formatRevenuePerJob(3000, 2)).toBe('1500.00');
+    expect(dashboard.formatRevenuePerJob(3000, 2)).toBe('1500.00');
   });
 
   it('should round to two decimal places for non-integer results', () => {
     // 1000 / 3 ≈ 333.33
-    expect(formatRevenuePerJob(1000, 3)).toBe('333.33');
+    expect(dashboard.formatRevenuePerJob(1000, 3)).toBe('333.33');
   });
 
   it('should handle zero revenue correctly', () => {
-    expect(formatRevenuePerJob(0, 5)).toBe('0.00');
+    expect(dashboard.formatRevenuePerJob(0, 5)).toBe('0.00');
   });
 });

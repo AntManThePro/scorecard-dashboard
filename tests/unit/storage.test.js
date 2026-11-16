@@ -208,6 +208,16 @@ describe('saveSnapshot', () => {
 
     expect(snap.id).toBe(timestamp.toISOString());
   });
+
+  it('should calculate default metrics from the supplied data', () => {
+    const data = cloneData(FULL_WEEK_DATA);
+    dashboard.__setWeeklyData(cloneData(EMPTY_WEEK_DATA));
+
+    const snapshot = dashboard.createSnapshot(data);
+
+    expect(snapshot.metrics).toEqual(dashboard.calculateWeeklyMetrics(data));
+    expect(snapshot.metrics.totalRevenue).toBeGreaterThan(0);
+  });
 });
 
 // ---------------------------------------------------------------------------
