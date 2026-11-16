@@ -10,7 +10,7 @@ const config = {
   ],
   collectCoverageFrom: [
     'src/**/*.js',
-    'app.js',
+    'script.js',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov'],

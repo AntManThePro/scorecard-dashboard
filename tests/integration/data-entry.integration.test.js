@@ -3,31 +3,9 @@
  * script.js event handlers.
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { jest } from '@jest/globals';
 import { clearStorage } from '../helpers/dom-setup.js';
-
-const indexHtml = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
-const dashboardScript = readFileSync(resolve(process.cwd(), 'script.js'), 'utf8');
-
-function setupDashboard() {
-  const page = new DOMParser().parseFromString(indexHtml, 'text/html');
-  document.body.replaceWith(document.importNode(page.body, true));
-  document.querySelector('script[src="script.js"]')?.remove();
-
-  window.Function(dashboardScript)();
-  document.dispatchEvent(new Event('DOMContentLoaded'));
-}
-
-function enterDay({ day = 'Monday', revenue, labor, hours, jobs }) {
-  document.getElementById('daySelect').value = day;
-  document.getElementById('revenueInput').value = revenue;
-  document.getElementById('laborInput').value = labor;
-  document.getElementById('hoursInput').value = hours;
-  document.getElementById('jobsCompletedInput').value = jobs;
-  document.getElementById('addEntryBtn').click();
-}
+import { enterDay, mockDashboardDialogs, setupDashboard } from '../helpers/dashboard-module.js';
 
 function readBlob(blob) {
   return new Promise((resolve, reject) => {
@@ -39,14 +17,10 @@ function readBlob(blob) {
 }
 
 describe('Dashboard data-entry integration', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     clearStorage();
-    window.alert = jest.fn();
-    window.confirm = jest.fn(() => true);
-    window.URL.createObjectURL = jest.fn(() => 'blob:scorecard');
-    window.URL.revokeObjectURL = jest.fn();
-    jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-    setupDashboard();
+    mockDashboardDialogs();
+    await setupDashboard();
   });
 
   afterEach(() => {
@@ -73,11 +47,11 @@ describe('Dashboard data-entry integration', () => {
 
   it('restores persisted entries when the dashboard is initialized again', () => {
     enterDay({ revenue: '850', labor: '28', hours: '5', jobs: '2' });
-    setupDashboard();
-
-    expect(document.getElementById('totalRevenue').textContent).toBe('$850.00');
-    expect(document.getElementById('totalJobs').textContent).toBe('2');
-    expect(document.querySelector('#weeklyTableBody tr').textContent).toContain('850.00');
+    return setupDashboard().then(() => {
+      expect(document.getElementById('totalRevenue').textContent).toBe('$850.00');
+      expect(document.getElementById('totalJobs').textContent).toBe('2');
+      expect(document.querySelector('#weeklyTableBody tr').textContent).toContain('850.00');
+    });
   });
 
   it('applies editor and viewer permissions to the real dashboard controls', () => {

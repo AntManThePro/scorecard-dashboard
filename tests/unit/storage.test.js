@@ -1,184 +1,76 @@
-/**
- * Unit tests for localStorage persistence logic.
- *
- * These tests exercise the serialisation / deserialisation cycle used by
- * saveToLocalStorage() and loadFromLocalStorage() in app.js, as well as the
- * snapshot storage helpers getSnapshots() / handleSaveSnapshot().
- *
- * The JSDOM environment (jest-environment-jsdom) provides localStorage and
- * sessionStorage stubs.
- */
+import { jest } from '@jest/globals';
+import { enterDay, mockDashboardDialogs, setupDashboard } from '../helpers/dashboard-module.js';
+import { clearStorage } from '../helpers/dom-setup.js';
 
-import {
-  FULL_WEEK_DATA,
-  EMPTY_WEEK_DATA,
-} from '../helpers/test-data.js';
-import { clearStorage, seedLocalStorage } from '../helpers/dom-setup.js';
-
-// ---------------------------------------------------------------------------
-// Implementations that mirror app.js storage helpers
-// (Kept pure to test the logic independently of DOM bootstrap issues)
-// ---------------------------------------------------------------------------
-
-function saveWeeklyData(data) {
-  localStorage.setItem('weeklyData', JSON.stringify(data));
-}
-
-function loadWeeklyData() {
-  const saved = localStorage.getItem('weeklyData');
-  return saved ? JSON.parse(saved) : null;
-}
-
-function saveSnapshots(snapshots) {
-  localStorage.setItem('snapshots', JSON.stringify(snapshots));
-}
-
-function loadSnapshots() {
-  const saved = localStorage.getItem('snapshots');
-  return saved ? JSON.parse(saved) : [];
-}
-
-function createSnapshot(weeklyData, metrics) {
-  const timestamp = new Date().toISOString();
-  return {
-    id:      timestamp,
-    date:    new Date().toLocaleString(),
-    data:    JSON.parse(JSON.stringify(weeklyData)),
-    metrics: metrics,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Weekly data persistence
-// ---------------------------------------------------------------------------
-describe('Weekly data – localStorage persistence', () => {
-  beforeEach(clearStorage);
-
-  it('should return null when nothing has been saved yet', () => {
-    expect(loadWeeklyData()).toBeNull();
+describe('Dashboard persistence and snapshots', () => {
+  beforeEach(async () => {
+    clearStorage();
+    mockDashboardDialogs();
+    await setupDashboard();
   });
 
-  it('should persist and retrieve weeklyData correctly', () => {
-    saveWeeklyData(FULL_WEEK_DATA);
-    const loaded = loadWeeklyData();
-    expect(loaded).toEqual(FULL_WEEK_DATA);
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
-  it('should persist empty weeklyData correctly', () => {
-    saveWeeklyData(EMPTY_WEEK_DATA);
-    const loaded = loadWeeklyData();
-    expect(loaded).toEqual(EMPTY_WEEK_DATA);
-  });
-
-  it('should overwrite previously saved data', () => {
-    saveWeeklyData(FULL_WEEK_DATA);
-    saveWeeklyData(EMPTY_WEEK_DATA);
-    const loaded = loadWeeklyData();
-    expect(loaded).toEqual(EMPTY_WEEK_DATA);
-  });
-
-  it('should survive a JSON round-trip (values are equal but not same reference)', () => {
-    saveWeeklyData(FULL_WEEK_DATA);
-    const loaded = loadWeeklyData();
-    expect(loaded).not.toBe(FULL_WEEK_DATA); // different reference
-    expect(loaded).toEqual(FULL_WEEK_DATA);  // same values
-  });
-
-  it('should preserve floating-point revenue values', () => {
-    const data = {
+  it('loads saved weekly data into the dashboard on startup', async () => {
+    localStorage.setItem('weeklyData', JSON.stringify({
       Monday: { revenue: 1234.56, labor: 27.5, hours: 7.25, jobs: 2 },
-      Tuesday:   { revenue: 0, labor: 0, hours: 0, jobs: 0 },
-      Wednesday: { revenue: 0, labor: 0, hours: 0, jobs: 0 },
-      Thursday:  { revenue: 0, labor: 0, hours: 0, jobs: 0 },
-      Friday:    { revenue: 0, labor: 0, hours: 0, jobs: 0 },
-      Saturday:  { revenue: 0, labor: 0, hours: 0, jobs: 0 },
-      Sunday:    { revenue: 0, labor: 0, hours: 0, jobs: 0 },
-    };
-    saveWeeklyData(data);
-    const loaded = loadWeeklyData();
-    expect(loaded.Monday.revenue).toBe(1234.56);
-    expect(loaded.Monday.labor).toBe(27.5);
-  });
-});
+    }));
+    await setupDashboard();
 
-// ---------------------------------------------------------------------------
-// Snapshot storage
-// ---------------------------------------------------------------------------
-describe('Snapshot storage', () => {
-  beforeEach(clearStorage);
-
-  it('should return an empty array when no snapshots are saved', () => {
-    expect(loadSnapshots()).toEqual([]);
+    expect(document.getElementById('totalRevenue').textContent).toBe('$1234.56');
+    expect(document.getElementById('avgLabor').textContent).toBe('27.5%');
+    expect(document.getElementById('totalHours').textContent).toBe('7.3');
+    expect(document.getElementById('totalJobs').textContent).toBe('2');
   });
 
-  it('should save and retrieve a single snapshot', () => {
-    const snap = createSnapshot(FULL_WEEK_DATA, { totalRevenue: 16500, avgLabor: 24.7 });
-    saveSnapshots([snap]);
-    const loaded = loadSnapshots();
-    expect(loaded).toHaveLength(1);
-    expect(loaded[0].data).toEqual(FULL_WEEK_DATA);
+  it('saves entered weekly data through the application event handler', () => {
+    enterDay({ revenue: 1234.56, labor: 27.5, hours: 7.25, jobs: 2 });
+
+    expect(JSON.parse(localStorage.getItem('weeklyData')).Monday).toEqual({
+      revenue: 1234.56,
+      labor: 27.5,
+      hours: 7.25,
+      jobs: 2,
+    });
   });
 
-  it('should save and retrieve multiple snapshots in order', () => {
-    const snap1 = createSnapshot(FULL_WEEK_DATA,  { totalRevenue: 16500 });
-    const snap2 = createSnapshot(EMPTY_WEEK_DATA, { totalRevenue: 0 });
-    saveSnapshots([snap1, snap2]);
-    const loaded = loadSnapshots();
-    expect(loaded).toHaveLength(2);
-    expect(loaded[0].data).toEqual(FULL_WEEK_DATA);
-    expect(loaded[1].data).toEqual(EMPTY_WEEK_DATA);
+  it('creates a snapshot from live data and restores it through the load handler', () => {
+    enterDay({ revenue: 500, labor: 25, hours: 4, jobs: 1 });
+    document.getElementById('saveBtn').click();
+    const [snapshot] = JSON.parse(localStorage.getItem('snapshots'));
+
+    enterDay({ revenue: 9999, labor: 40, hours: 8, jobs: 4 });
+    window.loadSnapshot(snapshot.id);
+
+    expect(document.getElementById('totalRevenue').textContent).toBe('$500.00');
+    expect(document.getElementById('totalJobs').textContent).toBe('1');
+    expect(JSON.parse(localStorage.getItem('weeklyData')).Monday).toEqual({
+      revenue: 500,
+      labor: 25,
+      hours: 4,
+      jobs: 1,
+    });
+    expect(window.alert).toHaveBeenCalledWith('Snapshot loaded successfully!');
   });
 
-  it('should be able to delete a snapshot by filtering on id', () => {
-    const snap1 = { id: 'snap-001', date: '1/1/2025', data: JSON.parse(JSON.stringify(FULL_WEEK_DATA)),  metrics: { totalRevenue: 16500 } };
-    const snap2 = { id: 'snap-002', date: '1/2/2025', data: JSON.parse(JSON.stringify(EMPTY_WEEK_DATA)), metrics: { totalRevenue: 0 } };
-    saveSnapshots([snap1, snap2]);
+  it('displays saved snapshots newest first and deletes the selected snapshot', () => {
+    enterDay({ revenue: 100, labor: 20, hours: 2, jobs: 1 });
+    document.getElementById('saveBtn').click();
+    const first = JSON.parse(localStorage.getItem('snapshots'))[0];
+    enterDay({ day: 'Tuesday', revenue: 200, labor: 21, hours: 3, jobs: 1 });
+    document.getElementById('saveBtn').click();
+    const snapshots = JSON.parse(localStorage.getItem('snapshots'));
+    const second = snapshots[1];
 
-    // Simulate deleteSnapshot(snap1.id)
-    let snaps = loadSnapshots();
-    snaps = snaps.filter(s => s.id !== snap1.id);
-    saveSnapshots(snaps);
+    expect(document.querySelectorAll('.snapshot-item')).toHaveLength(2);
+    expect(document.querySelector('.snapshot-item .snapshot-date').textContent).toBe(second.date);
 
-    const remaining = loadSnapshots();
-    expect(remaining).toHaveLength(1);
-    expect(remaining[0].data).toEqual(EMPTY_WEEK_DATA);
-  });
+    window.deleteSnapshot(first.id);
 
-  it('should store a deep copy of weeklyData in the snapshot', () => {
-    const original = { Monday: { revenue: 500, labor: 25, hours: 4, jobs: 1 } };
-    const snap = createSnapshot(original, {});
-    // Mutate original after snapshot – snapshot should not be affected
-    original.Monday.revenue = 9999;
-    expect(snap.data.Monday.revenue).toBe(500);
-  });
-
-  it('should store snapshot id as a valid ISO timestamp string', () => {
-    const snap = createSnapshot(FULL_WEEK_DATA, {});
-    const date = new Date(snap.id);
-    expect(Number.isNaN(date.getTime())).toBe(false);
-    expect(date.toISOString()).toBe(snap.id);
-  });
-
-  it('should find a snapshot by id (simulating loadSnapshot)', () => {
-    const snap1 = { id: 'snap-A', date: '1/1/2025', data: JSON.parse(JSON.stringify(FULL_WEEK_DATA)),  metrics: {} };
-    const snap2 = { id: 'snap-B', date: '1/2/2025', data: JSON.parse(JSON.stringify(EMPTY_WEEK_DATA)), metrics: {} };
-    saveSnapshots([snap1, snap2]);
-
-    const snaps = loadSnapshots();
-    const found = snaps.find(s => s.id === snap2.id);
-    expect(found).toBeDefined();
-    expect(found.data).toEqual(EMPTY_WEEK_DATA);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// seedLocalStorage helper (from dom-setup.js)
-// ---------------------------------------------------------------------------
-describe('seedLocalStorage helper', () => {
-  beforeEach(clearStorage);
-
-  it('should write weeklyData so loadWeeklyData returns it', () => {
-    seedLocalStorage(FULL_WEEK_DATA);
-    expect(loadWeeklyData()).toEqual(FULL_WEEK_DATA);
+    expect(JSON.parse(localStorage.getItem('snapshots'))).toHaveLength(1);
+    expect(JSON.parse(localStorage.getItem('snapshots'))[0].id).toBe(second.id);
+    expect(document.querySelectorAll('.snapshot-item')).toHaveLength(1);
   });
 });
