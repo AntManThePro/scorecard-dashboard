@@ -65,7 +65,10 @@ describe('Dashboard persistence and snapshots', () => {
     const second = snapshots[1];
 
     expect(document.querySelectorAll('.snapshot-item')).toHaveLength(2);
-    expect(document.querySelector('.snapshot-item .snapshot-date').textContent).toBe(second.date);
+    expect([...document.querySelectorAll('.snapshot-item .snapshot-metrics')].map((item) => item.textContent.match(/Revenue: \$([\d.]+)/)?.[1])).toEqual([
+      second.metrics.totalRevenue.toFixed(2),
+      first.metrics.totalRevenue.toFixed(2),
+    ]);
 
     window.deleteSnapshot(first.id);
 
