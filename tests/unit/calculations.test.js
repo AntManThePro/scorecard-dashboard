@@ -14,7 +14,14 @@ describe('Dashboard calculations', () => {
     jest.restoreAllMocks();
   });
 
-  it('renders zero metrics for an empty week', () => {
+  it('renders zero metrics for an empty week', async () => {
+    // Arrange
+    clearStorage();
+
+    // Act
+    await setupDashboard();
+
+    // Assert
     expect(document.getElementById('totalRevenue').textContent).toBe('$0.00');
     expect(document.getElementById('avgLabor').textContent).toBe('0.0%');
     expect(document.getElementById('totalHours').textContent).toBe('0.0');
@@ -25,9 +32,13 @@ describe('Dashboard calculations', () => {
   });
 
   it('calculates the weekly totals, averages, and derived metrics from entered days', () => {
-    ['Thursday', 'Monday', 'Tuesday', 'Wednesday', 'Friday', 'Saturday', 'Sunday']
-      .forEach(day => enterDay({ day, ...FULL_WEEK_DATA[day] }));
+    // Arrange
+    const days = ['Thursday', 'Monday', 'Tuesday', 'Wednesday', 'Friday', 'Saturday', 'Sunday'];
 
+    // Act
+    days.forEach(day => enterDay({ day, ...FULL_WEEK_DATA[day] }));
+
+    // Assert
     expect(document.getElementById('totalRevenue').textContent).toBe('$16500.00');
     expect(document.getElementById('avgLabor').textContent).toBe('24.7%');
     expect(document.getElementById('totalHours').textContent).toBe('51.5');
@@ -35,6 +46,48 @@ describe('Dashboard calculations', () => {
     expect(document.getElementById('avgRevenuePerJob').textContent).toBe('$868.42');
     expect(document.getElementById('laborEfficiency').textContent).toBe('$320.39/hr');
     expect(document.getElementById('bonusIndicator').classList.contains('hidden')).toBe(false);
+  });
+
+  it('calculates metrics when saved data omits days', async () => {
+    // Arrange
+    localStorage.setItem('weeklyData', JSON.stringify({
+      Monday: { revenue: 1500, labor: 27, hours: 6, jobs: 2 },
+      Wednesday: { revenue: 2200, labor: 33, hours: 8, jobs: 3 },
+    }));
+
+    // Act
+    await setupDashboard();
+
+    // Assert
+    expect(document.getElementById('totalRevenue').textContent).toBe('$3700.00');
+    expect(document.getElementById('avgLabor').textContent).toBe('30.0%');
+    expect(document.getElementById('totalHours').textContent).toBe('14.0');
+    expect(document.getElementById('totalJobs').textContent).toBe('5');
+    expect(document.getElementById('avgRevenuePerJob').textContent).toBe('$740.00');
+    expect(document.getElementById('laborEfficiency').textContent).toBe('$264.29/hr');
+  });
+
+  it('treats non-numeric form input as zero when calculating metrics', () => {
+    // Arrange
+    enterDay({ revenue: 1000, labor: 20, hours: 5, jobs: 2 });
+    document.getElementById('daySelect').value = 'Tuesday';
+    const inputs = ['revenueInput', 'laborInput', 'hoursInput', 'jobsCompletedInput']
+      .map(id => document.getElementById(id));
+    inputs.forEach(input => { input.value = 'not-a-number'; });
+
+    // Act
+    document.getElementById('addEntryBtn').click();
+
+    // Assert
+    expect(JSON.parse(localStorage.getItem('weeklyData')).Tuesday).toEqual({
+      revenue: 0, labor: 0, hours: 0, jobs: 0,
+    });
+    expect(document.getElementById('totalRevenue').textContent).toBe('$1000.00');
+    expect(document.getElementById('avgLabor').textContent).toBe('20.0%');
+    expect(document.getElementById('totalHours').textContent).toBe('5.0');
+    expect(document.getElementById('totalJobs').textContent).toBe('2');
+    expect(document.getElementById('avgRevenuePerJob').textContent).toBe('$500.00');
+    expect(document.getElementById('laborEfficiency').textContent).toBe('$200.00/hr');
   });
 
   it('uses the production labor-class thresholds for table cells', () => {
