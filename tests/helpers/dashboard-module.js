@@ -8,10 +8,27 @@ export async function setupDashboard() {
   const page = new DOMParser().parseFromString(indexHtml, 'text/html');
   document.body.replaceWith(document.importNode(page.body, true));
 
-  await jest.isolateModulesAsync(async () => {
-    await import('../../script.js');
+  const initializationListeners = [];
+  const originalAddEventListener = document.addEventListener.bind(document);
+  const addEventListenerSpy = jest.spyOn(document, 'addEventListener').mockImplementation((type, listener, options) => {
+    if (type === 'DOMContentLoaded') {
+      initializationListeners.push(listener);
+    }
+    return originalAddEventListener(type, listener, options);
   });
+
+  try {
+    await jest.isolateModulesAsync(async () => {
+      await import('../../script.js');
+    });
+  } finally {
+    addEventListenerSpy.mockRestore();
+  }
+
   document.dispatchEvent(new Event('DOMContentLoaded'));
+  initializationListeners.forEach((listener) => {
+    document.removeEventListener('DOMContentLoaded', listener);
+  });
 }
 
 export function enterDay({ day = 'Monday', revenue, labor, hours, jobs }) {
