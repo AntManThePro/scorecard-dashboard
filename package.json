@@ -1,0 +1,55 @@
+{
+  "name": "scorecard-dashboard",
+  "version": "1.0.0",
+  "description": "![GitHub Pages](https://img.shields.io/github/deployments/AntManThePro/scorecard-dashboard/github-pages?label=Deployed%20to%20GitHub%20Pages&logo=github&style=flat-square) # Crew Performance Scorecard Dashboard",
+  "main": "app.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch": [
+      "**/tests/**/*.test.js",
+      "**/tests/**/*.spec.js"
+    ],
+    "transform": {
+      "^.+\\.js$": ["babel-jest", {"presets": [["@babel/preset-env", {"targets": {"node": "current"}}]]}]
+    },
+    "moduleFileExtensions": [
+      "js"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "app.js",
+      "script.js",
+      "repos.js",
+      "charts.js"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AntManThePro/scorecard-dashboard.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AntManThePro/scorecard-dashboard/issues"
+  },
+  "homepage": "https://github.com/AntManThePro/scorecard-dashboard#readme",
+  "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.2",
+    "babel-jest": "^30.3.0",
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0"
+  }
+}
